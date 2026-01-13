@@ -6,7 +6,7 @@ extends EditorImportPlugin
 
 
 func _get_importer_name() -> String:
-	return "csv_handler.importer"
+	return "godotsv.importer"
 
 
 func _get_visible_name() -> String:

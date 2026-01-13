@@ -17,7 +17,7 @@
 
 ## 安装
 
-将 `addons/GodotSV` 文件夹复制到您的 Godot 项目的 `addons` 目录下，然后在项目设置中启用 "CSV Handler" 插件。
+将 `addons/GodotSV` 文件夹复制到您的 Godot 项目的 `addons` 目录下，然后在项目设置中启用 "GodotSV" 插件。
 
 ## 快速开始
 
@@ -350,7 +350,7 @@ print("解析完成：共 %d 行数据" % data.get_row_count())
 ```gdscript
 # 在编辑器中创建 item_schema.tres
 # [Resource]
-# script = ExtResource("res://addons/csv_handler/csv_schema.gd")
+# script = ExtResource("res://addons/GodotSV/csv_schema.gd")
 # field_definitions = {
 #   "id": {
 #     "type": 4,  # TYPE_STRING_NAME

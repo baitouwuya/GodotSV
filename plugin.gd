@@ -1,11 +1,11 @@
 @tool
 extends EditorPlugin
 
-## CSV Handler 插件入口，负责注册 CSV 导入插件和编辑器插件
+## GodotSV 插件入口，负责注册 CSV 导入插件和编辑器插件
 
-const CSV_RESOURCE_SCRIPT: Script = preload("res://addons/csv_handler/csv_resource.gd")
-const CSV_IMPORTER_NAME := "csv_handler.importer"
-const LEGACY_TRANSLATION_DIR := "res://.godot/csv_handler/legacy_translation"
+const CSV_RESOURCE_SCRIPT: Script = preload("res://addons/GodotSV/csv_resource.gd")
+const CSV_IMPORTER_NAME := "godotsv.importer"
+const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
 
 var _import_plugin: CSVImportPlugin = null
 var _editor_plugin: CSVEditorPlugin = null
@@ -15,7 +15,7 @@ var _legacy_cleanup_attempts: int = 0
 func _enter_tree() -> void:
 	# 确保 CSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
 	if CSV_RESOURCE_SCRIPT == null:
-		push_error("CSV Handler: 无法预加载 csv_resource.gd")
+		push_error("GodotSV: 无法预加载 csv_resource.gd")
 		return
 	
 	# 触发CSVResource的class_name注册（编辑器启动早期时序问题）
@@ -143,7 +143,7 @@ func _make_visible(visible: bool) -> void:
 
 
 func _get_plugin_name() -> String:
-	return _editor_plugin._get_plugin_name() if _editor_plugin else "CSV Handler"
+	return _editor_plugin._get_plugin_name() if _editor_plugin else "GodotSV"
 
 
 func _get_plugin_icon() -> Texture2D:
