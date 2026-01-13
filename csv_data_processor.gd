@@ -524,7 +524,7 @@ func _ensure_headers_synced() -> void:
 	if not _table_data:
 		return
 
-	var col_count := _table_data.get_column_count()
+	var col_count: int = _table_data.get_column_count()
 
 	if _original_header.size() != col_count:
 		if _cleaned_header.size() == col_count:
