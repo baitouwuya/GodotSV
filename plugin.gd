@@ -179,11 +179,11 @@ func _load_plugin_script(file_name: String) -> Script:
 	if file_name.is_empty():
 		return null
 
-	var plugin_dir := get_script().resource_path.get_base_dir()
+	var plugin_dir: String = get_script().resource_path.get_base_dir()
 	if plugin_dir.is_empty():
 		return null
 
-	var script_path := plugin_dir.path_join(file_name)
-	var res := load(script_path)
+	var script_path: String = plugin_dir.path_join(file_name)
+	var res: Resource = load(script_path)
 	return res as Script
 #endregion
