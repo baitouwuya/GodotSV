@@ -1,4 +1,4 @@
-# CSV Handler API 参考
+# GodotSV API 参考
 
 完整的 API 参考文档，涵盖所有 C++ GDExtension 类和 GDScript 高级 API。
 
@@ -1136,7 +1136,7 @@ func parse_annotated_csv() -> void:
 ## 错误处理最佳实践
 
 ```gdscript
-class_name CSVHandler extends Node
+class_name GodotSVHandler extends Node
 
 ## 安全的 CSV 加载函数
 func load_csv_safely(file_path: String, schema: CSVSchema = null) -> CSVResource:

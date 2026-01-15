@@ -6,7 +6,7 @@ extends EditorImportPlugin
 
 
 func _get_importer_name() -> String:
-	return "csv_handler.importer"
+	return "godotsv.importer"
 
 
 func _get_visible_name() -> String:
@@ -79,6 +79,9 @@ func _get_option_visibility(path: String, option_name: StringName, options: Dict
 
 
 func _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array[String], gen_files: Array[String]) -> Error:
++	# 被动触发旧 *.translation 清理：仅在真正发生导入时执行，避免编辑器启动扫描期文件锁冲突。
++	EditorPlugin.request_legacy_translation_cleanup()
++
 	# 创建 CSVLoader 实例
 	var loader := CSVLoader.new()
 	

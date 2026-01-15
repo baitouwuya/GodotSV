@@ -1,23 +1,25 @@
 @tool
 extends EditorPlugin
 
-## CSV Handler 插件入口，负责注册 CSV 导入插件和编辑器插件
+## GodotSV 插件入口，负责注册 CSV 导入插件和编辑器插件
 
-const CSV_RESOURCE_SCRIPT: Script = preload("res://addons/csv_handler/csv_resource.gd")
-const CSV_IMPORTER_NAME := "csv_handler.importer"
-const LEGACY_TRANSLATION_DIR := "res://.godot/csv_handler/legacy_translation"
+const CSV_IMPORTER_NAME := "godotsv.importer"
+const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
 
 var _import_plugin: CSVImportPlugin = null
 var _editor_plugin: CSVEditorPlugin = null
 var _legacy_cleanup_attempts: int = 0
 
 
+#region 生命周期方法 Lifecycle Methods
 func _enter_tree() -> void:
+	add_to_group("godotsv_plugin")
 	# 确保 CSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
-	if CSV_RESOURCE_SCRIPT == null:
-		push_error("CSV Handler: 无法预加载 csv_resource.gd")
+	var csv_resource_script := _load_plugin_script("csv_resource.gd")
+	if csv_resource_script == null:
+		push_error("GodotSV: 无法加载 csv_resource.gd（请确认插件目录完整）")
 		return
-	
+
 	# 触发CSVResource的class_name注册（编辑器启动早期时序问题）
 	CSVResource.ensure_registered()
 
@@ -33,10 +35,13 @@ func _enter_tree() -> void:
 	_editor_plugin.owner = self
 
 	# 清理旧的 Translation CSV 导入产物（例如 sample_people.age.translation），避免污染 CSV 目录
-	call_deferred("_schedule_legacy_translation_cleanup")
+	# 注意：旧的 *.translation 清理改为“被动触发”。
+	# 仅在读取/导入 CSV 时按需触发，避免与编辑器资源扫描/导入线程抢占文件句柄导致锁冲突。
+	# 触发入口见：request_legacy_translation_cleanup()
 
 
 func _exit_tree() -> void:
+	remove_from_group("godotsv_plugin")
 	# 移除导入插件
 	if _import_plugin != null:
 		remove_import_plugin(_import_plugin)
@@ -47,6 +52,23 @@ func _exit_tree() -> void:
 	if _editor_plugin != null:
 		_editor_plugin.queue_free()
 		_editor_plugin = null
+#endregion
+
+
++#region 兼容性清理 Compatibility Cleanup
++## 请求一次“旧的 *.translation”清理（被动触发）。
++## 该方法会在编辑器扫描结束后再执行，避免与扫描线程冲突。
++static func request_legacy_translation_cleanup() -> void:
++	var root := Engine.get_main_loop() as SceneTree
++	if root == null:
++		return
++
++	var plugin := root.get_first_node_in_group("godotsv_plugin")
++	if plugin == null:
++		return
++
++	(plugin as EditorPlugin).call_deferred("_schedule_legacy_translation_cleanup")
++#endregion
 
 
 func _schedule_legacy_translation_cleanup() -> void:
@@ -68,7 +90,15 @@ func _schedule_legacy_translation_cleanup() -> void:
 func _cleanup_legacy_translation_files() -> void:
 	# 仅清理“由 CSV 翻译导入器误导入产生”的 *.translation 文件：
 	# 文件名形如 <csv_base>.<locale>.translation，并且对应的 <csv_base>.csv 当前使用我们的 importer。
-	_cleanup_legacy_translation_files_in_dir("res://")
+	#
+	# 重要：不要递归扫描整个 res://。
+	# 这会触发 Godot 编辑器在资源扫描/导入阶段对多种资源生成或更新
+	# .godot/editor/*translation-folding-*.cfg，进而在某些项目/环境下出现“文件被占用/权限不足”。
+	#
+	# 旧版本我们会把误导入的 *.translation 移到本目录，因此只需要扫描这里即可。
+	var target_dir_abs := ProjectSettings.globalize_path(LEGACY_TRANSLATION_DIR)
+	DirAccess.make_dir_recursive_absolute(target_dir_abs)
+	_cleanup_legacy_translation_files_in_dir(LEGACY_TRANSLATION_DIR)
 
 
 func _cleanup_legacy_translation_files_in_dir(dir_path: String) -> void:
@@ -79,14 +109,13 @@ func _cleanup_legacy_translation_files_in_dir(dir_path: String) -> void:
 	dir.list_dir_begin()
 	var entry := dir.get_next()
 	while not entry.is_empty():
-		if entry.begins_with(".") and entry != ".godot":
+		if entry.begins_with("."):
 			entry = dir.get_next()
 			continue
 
 		var full_path := dir_path.path_join(entry)
 		if dir.current_is_dir():
-			if entry != ".godot":
-				_cleanup_legacy_translation_files_in_dir(full_path)
+			_cleanup_legacy_translation_files_in_dir(full_path)
 		else:
 			if entry.ends_with(".translation"):
 				_try_move_legacy_translation_file(full_path)
@@ -143,7 +172,7 @@ func _make_visible(visible: bool) -> void:
 
 
 func _get_plugin_name() -> String:
-	return _editor_plugin._get_plugin_name() if _editor_plugin else "CSV Handler"
+	return _editor_plugin._get_plugin_name() if _editor_plugin else "GodotSV"
 
 
 func _get_plugin_icon() -> Texture2D:
@@ -162,3 +191,19 @@ func _get_state() -> Dictionary:
 func _set_state(state: Dictionary) -> void:
 	if _editor_plugin:
 		_editor_plugin._set_state(state)
+
+#region 工具方法 Utility Methods
+func _load_plugin_script(file_name: String) -> Script:
+	# 使用插件自身脚本路径拼接，避免用户把插件放到不同目录时路径失效。
+	# 约定：本文件与目标脚本（如 csv_resource.gd）位于同一目录。
+	if file_name.is_empty():
+		return null
+
+	var plugin_dir: String = get_script().resource_path.get_base_dir()
+	if plugin_dir.is_empty():
+		return null
+
+	var script_path: String = plugin_dir.path_join(file_name)
+	var script_res := load(script_path)
+	return script_res as Script
+#endregion
