@@ -5,6 +5,7 @@ extends EditorPlugin
 
 const CSV_IMPORTER_NAME := "godotsv.importer"
 const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
+const INVALID_TRANSLATION_NAME_CHARS := [":", "[", "]", "(", ")"]
 
 var _import_plugin: CSVImportPlugin = null
 var _editor_plugin: CSVEditorPlugin = null
@@ -103,6 +104,107 @@ func _cleanup_legacy_translation_files() -> void:
 	var target_dir_abs := ProjectSettings.globalize_path(LEGACY_TRANSLATION_DIR)
 	DirAccess.make_dir_recursive_absolute(target_dir_abs)
 	_cleanup_legacy_translation_files_in_dir(LEGACY_TRANSLATION_DIR)
+
+	# 额外清理：删除“文件名非法（含类型标注符号）”的 *.translation 产物。
+	# 这些文件通常来自 Godot 内置 CSV Translation importer 把 CSV 表头拼进文件名。
+	# 只扫描“使用我们 importer 的 CSV 所在目录”，避免全项目扫描引发锁冲突。
+	_cleanup_invalid_translation_files_for_godotsv_csvs()
+
+
+func _cleanup_invalid_translation_files_for_godotsv_csvs() -> void:
+	var csv_dirs := _collect_godotsv_csv_dirs()
+	for dir_path: String in csv_dirs:
+		_cleanup_invalid_translation_files_in_dir(dir_path)
+
+
+func _collect_godotsv_csv_dirs() -> Array[String]:
+	var result: Array[String] = []
+	var csv_import_paths := _collect_godotsv_csv_import_paths()
+	for csv_import_path: String in csv_import_paths:
+		var dir_path := csv_import_path.get_base_dir()
+		if not dir_path.is_empty() and not (dir_path in result):
+			result.append(dir_path)
+	return result
+
+
+func _collect_godotsv_csv_import_paths() -> Array[String]:
+	var result: Array[String] = []
+
+	var editor_if := get_editor_interface()
+	if editor_if == null or not editor_if.has_method("get_resource_filesystem"):
+		return result
+
+	var fs := editor_if.get_resource_filesystem()
+	if fs == null:
+		return result
+
+	var root := fs.get_filesystem()
+	if root == null:
+		return result
+
+	_collect_godotsv_csv_import_paths_in_dir(root, result)
+	return result
+
+
+func _collect_godotsv_csv_import_paths_in_dir(dir, out_paths: Array[String]) -> void:
+	# 这里的 dir 是 EditorFileSystemDirectory，无法静态类型标注。
+	if dir == null:
+		return
+
+	var file_count: int = dir.get_file_count()
+	for i in range(file_count):
+		var file_path: String = dir.get_file_path(i)
+		if not file_path.ends_with(".csv"):
+			continue
+
+		var import_path := file_path + ".import"
+		if not FileAccess.file_exists(import_path):
+			continue
+
+		var import_text := FileAccess.get_file_as_string(import_path)
+		if import_text.find('importer="%s"' % CSV_IMPORTER_NAME) >= 0:
+			out_paths.append(file_path)
+
+	var subdir_count: int = dir.get_subdir_count()
+	for j in range(subdir_count):
+		_collect_godotsv_csv_import_paths_in_dir(dir.get_subdir(j), out_paths)
+
+
+func _cleanup_invalid_translation_files_in_dir(dir_path: String) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while not entry.is_empty():
+		if entry.begins_with("."):
+			entry = dir.get_next()
+			continue
+
+		if dir.current_is_dir():
+			entry = dir.get_next()
+			continue
+
+		if entry.ends_with(".translation") and _is_invalid_translation_file_name(entry):
+			_try_remove_file(dir_path.path_join(entry))
+
+		entry = dir.get_next()
+	dir.list_dir_end()
+
+
+func _is_invalid_translation_file_name(file_name: String) -> bool:
+	for ch: String in INVALID_TRANSLATION_NAME_CHARS:
+		if file_name.find(ch) >= 0:
+			return true
+	return false
+
+
+func _try_remove_file(path: String) -> void:
+	var abs := ProjectSettings.globalize_path(path)
+	if DirAccess.remove_absolute(abs) != OK:
+		# 编辑器环境下不使用 assert，避免影响稳定性
+		push_warning("GodotSV: 无法删除文件（可能被占用/权限不足）: %s" % path)
 
 
 func _cleanup_legacy_translation_files_in_dir(dir_path: String) -> void:
