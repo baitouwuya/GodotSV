@@ -13,6 +13,7 @@ var _legacy_cleanup_attempts: int = 0
 
 #region 生命周期方法 Lifecycle Methods
 func _enter_tree() -> void:
+	add_to_group("godotsv_plugin")
 	# 确保 CSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
 	var csv_resource_script := _load_plugin_script("csv_resource.gd")
 	if csv_resource_script == null:
@@ -34,10 +35,13 @@ func _enter_tree() -> void:
 	_editor_plugin.owner = self
 
 	# 清理旧的 Translation CSV 导入产物（例如 sample_people.age.translation），避免污染 CSV 目录
-	call_deferred("_schedule_legacy_translation_cleanup")
+	# 注意：旧的 *.translation 清理改为“被动触发”。
+	# 仅在读取/导入 CSV 时按需触发，避免与编辑器资源扫描/导入线程抢占文件句柄导致锁冲突。
+	# 触发入口见：request_legacy_translation_cleanup()
 
 
 func _exit_tree() -> void:
+	remove_from_group("godotsv_plugin")
 	# 移除导入插件
 	if _import_plugin != null:
 		remove_import_plugin(_import_plugin)
@@ -49,6 +53,22 @@ func _exit_tree() -> void:
 		_editor_plugin.queue_free()
 		_editor_plugin = null
 #endregion
+
+
++#region 兼容性清理 Compatibility Cleanup
++## 请求一次“旧的 *.translation”清理（被动触发）。
++## 该方法会在编辑器扫描结束后再执行，避免与扫描线程冲突。
++static func request_legacy_translation_cleanup() -> void:
++	var root := Engine.get_main_loop() as SceneTree
++	if root == null:
++		return
++
++	var plugin := root.get_first_node_in_group("godotsv_plugin")
++	if plugin == null:
++		return
++
++	(plugin as EditorPlugin).call_deferred("_schedule_legacy_translation_cleanup")
++#endregion
 
 
 func _schedule_legacy_translation_cleanup() -> void:

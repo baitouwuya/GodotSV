@@ -108,6 +108,9 @@ static func clear_cache() -> void:
 
 ## 解析所有数据
 func parse_all() -> CSVResource:
++	if Engine.is_editor_hint():
++		EditorPlugin.request_legacy_translation_cleanup()
++
 	var csv_resource := CSVResource.new()
 	csv_resource.has_header = _has_header
 	csv_resource.delimiter = _delimiter
@@ -209,6 +212,9 @@ func parse_all() -> CSVResource:
 
 ## 创建流式读取器
 func stream() -> CSVStreamReaderGD:
++	if Engine.is_editor_hint():
++		EditorPlugin.request_legacy_translation_cleanup()
++
 	var reader := CSVStreamReaderGD.new(_file_path, _has_header, _delimiter)
 	
 	# 应用字段类型
