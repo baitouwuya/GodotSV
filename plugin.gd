@@ -55,20 +55,24 @@ func _exit_tree() -> void:
 #endregion
 
 
-+#region 兼容性清理 Compatibility Cleanup
-+## 请求一次“旧的 *.translation”清理（被动触发）。
-+## 该方法会在编辑器扫描结束后再执行，避免与扫描线程冲突。
-+static func request_legacy_translation_cleanup() -> void:
-+	var root := Engine.get_main_loop() as SceneTree
-+	if root == null:
-+		return
-+
-+	var plugin := root.get_first_node_in_group("godotsv_plugin")
-+	if plugin == null:
-+		return
-+
-+	(plugin as EditorPlugin).call_deferred("_schedule_legacy_translation_cleanup")
-+#endregion
+
+
+#region 兼容性清理 Compatibility Cleanup
+## 请求一次“旧的 *.translation”清理（被动触发）。
+## 该方法会在编辑器扫描结束后再执行，避免与扫描线程冲突。
+static func request_legacy_translation_cleanup() -> void:
+	var root := Engine.get_main_loop() as SceneTree
+	if root == null:
+		return
+
+	var plugin := root.get_first_node_in_group("godotsv_plugin")
+	if plugin == null:
+		return
+
+	(plugin as EditorPlugin).call_deferred("_schedule_legacy_translation_cleanup")
+#endregion
+
+
 
 
 func _schedule_legacy_translation_cleanup() -> void:
@@ -150,7 +154,8 @@ func _try_move_legacy_translation_file(translation_path: String) -> void:
 
 	if FileAccess.file_exists(target_path):
 		var base_name := translation_path.get_file().trim_suffix(".translation")
-		var new_name := "%s_%d.translation" % [base_name, Time.get_unix_time_from_system()]
+		var safe_base_name := _make_safe_file_stem(base_name)
+		var new_name := "%s_%d.translation" % [safe_base_name, Time.get_unix_time_from_system()]
 		target_path = LEGACY_TRANSLATION_DIR.path_join(new_name)
 		to_abs = ProjectSettings.globalize_path(target_path)
 
@@ -193,6 +198,28 @@ func _set_state(state: Dictionary) -> void:
 		_editor_plugin._set_state(state)
 
 #region 工具方法 Utility Methods
+func _make_safe_file_stem(stem: String) -> String:
+	# 只用于生成临时/迁移文件名：去掉可能导致跨平台问题的字符。
+	# 不要试图保留所有符号，优先保证文件可创建、可复制、可导入。
+	var s := stem.strip_edges()
+	if s.is_empty():
+		return "translation"
+
+	# Windows/跨平台常见非法字符 + 路径分隔符
+	var illegal_chars := ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "\n", "\r", "\t"]
+	for ch in illegal_chars:
+		s = s.replace(ch, "_")
+
+	# 避免隐藏文件或以点结尾
+	while s.begins_with("."):
+		s = s.trim_prefix(".")
+	while s.ends_with("."):
+		s = s.trim_suffix(".")
+
+	# 兜底
+	return s if not s.is_empty() else "translation"
+
+
 func _load_plugin_script(file_name: String) -> Script:
 	# 使用插件自身脚本路径拼接，避免用户把插件放到不同目录时路径失效。
 	# 约定：本文件与目标脚本（如 csv_resource.gd）位于同一目录。
