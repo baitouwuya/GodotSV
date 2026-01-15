@@ -21,3 +21,4 @@ bin/**
 !bin/*.gdextension
 bin/**/~*
 bin/**/~*.dll
+bin/windows/~*.dll
