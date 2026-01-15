@@ -70,7 +70,15 @@ func _schedule_legacy_translation_cleanup() -> void:
 func _cleanup_legacy_translation_files() -> void:
 	# 仅清理“由 CSV 翻译导入器误导入产生”的 *.translation 文件：
 	# 文件名形如 <csv_base>.<locale>.translation，并且对应的 <csv_base>.csv 当前使用我们的 importer。
-	_cleanup_legacy_translation_files_in_dir("res://")
+	#
+	# 重要：不要递归扫描整个 res://。
+	# 这会触发 Godot 编辑器在资源扫描/导入阶段对多种资源生成或更新
+	# .godot/editor/*translation-folding-*.cfg，进而在某些项目/环境下出现“文件被占用/权限不足”。
+	#
+	# 旧版本我们会把误导入的 *.translation 移到本目录，因此只需要扫描这里即可。
+	var target_dir_abs := ProjectSettings.globalize_path(LEGACY_TRANSLATION_DIR)
+	DirAccess.make_dir_recursive_absolute(target_dir_abs)
+	_cleanup_legacy_translation_files_in_dir(LEGACY_TRANSLATION_DIR)
 
 
 func _cleanup_legacy_translation_files_in_dir(dir_path: String) -> void:
@@ -81,14 +89,13 @@ func _cleanup_legacy_translation_files_in_dir(dir_path: String) -> void:
 	dir.list_dir_begin()
 	var entry := dir.get_next()
 	while not entry.is_empty():
-		if entry.begins_with(".") and entry != ".godot":
+		if entry.begins_with("."):
 			entry = dir.get_next()
 			continue
 
 		var full_path := dir_path.path_join(entry)
 		if dir.current_is_dir():
-			if entry != ".godot":
-				_cleanup_legacy_translation_files_in_dir(full_path)
+			_cleanup_legacy_translation_files_in_dir(full_path)
 		else:
 			if entry.ends_with(".translation"):
 				_try_move_legacy_translation_file(full_path)
