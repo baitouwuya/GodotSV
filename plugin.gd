@@ -3,7 +3,6 @@ extends EditorPlugin
 
 ## GodotSV 插件入口，负责注册 CSV 导入插件和编辑器插件
 
-const CSV_RESOURCE_SCRIPT: Script = preload("res://addons/GodotSV/csv_resource.gd")
 const CSV_IMPORTER_NAME := "godotsv.importer"
 const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
 
@@ -12,12 +11,14 @@ var _editor_plugin: CSVEditorPlugin = null
 var _legacy_cleanup_attempts: int = 0
 
 
+#region 生命周期方法 Lifecycle Methods
 func _enter_tree() -> void:
 	# 确保 CSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
-	if CSV_RESOURCE_SCRIPT == null:
-		push_error("GodotSV: 无法预加载 csv_resource.gd")
+	var csv_resource_script := _load_plugin_script("csv_resource.gd")
+	if csv_resource_script == null:
+		push_error("GodotSV: 无法加载 csv_resource.gd（请确认插件目录完整）")
 		return
-	
+
 	# 触发CSVResource的class_name注册（编辑器启动早期时序问题）
 	CSVResource.ensure_registered()
 
@@ -47,6 +48,7 @@ func _exit_tree() -> void:
 	if _editor_plugin != null:
 		_editor_plugin.queue_free()
 		_editor_plugin = null
+#endregion
 
 
 func _schedule_legacy_translation_cleanup() -> void:
@@ -162,3 +164,19 @@ func _get_state() -> Dictionary:
 func _set_state(state: Dictionary) -> void:
 	if _editor_plugin:
 		_editor_plugin._set_state(state)
+
+#region 工具方法 Utility Methods
+func _load_plugin_script(file_name: String) -> Script:
+	# 使用插件自身脚本路径拼接，避免用户把插件放到不同目录时路径失效。
+	# 约定：本文件与目标脚本（如 csv_resource.gd）位于同一目录。
+	if file_name.is_empty():
+		return null
+
+	var plugin_dir := get_script().resource_path.get_base_dir()
+	if plugin_dir.is_empty():
+		return null
+
+	var script_path := plugin_dir.path_join(file_name)
+	var res := load(script_path)
+	return res as Script
+#endregion
