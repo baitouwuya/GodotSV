@@ -1,5 +1,8 @@
+@tool
 class_name CSVLoader
 extends RefCounted
+
+const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
 
 ## CSV 文件加载器，提供 CSV 文件的读取、解析和转换功能
 
@@ -109,7 +112,8 @@ static func clear_cache() -> void:
 ## 解析所有数据
 func parse_all() -> CSVResource:
 	if Engine.is_editor_hint():
-		GodotSV.request_legacy_translation_cleanup()
+		# 被动触发旧 *.translation 清理：仅在真正发生读取时执行，避免编辑器启动扫描期文件锁冲突。
+		_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
 	var csv_resource: CSVResource = CSVResource.new()
 	csv_resource.has_header = _has_header
@@ -213,7 +217,8 @@ func parse_all() -> CSVResource:
 ## 创建流式读取器
 func stream() -> CSVStreamReaderGD:
 	if Engine.is_editor_hint():
-		GodotSV.request_legacy_translation_cleanup()
+		# 被动触发旧 *.translation 清理：仅在真正发生读取时执行，避免编辑器启动扫描期文件锁冲突。
+		_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
 	var reader: CSVStreamReaderGD = CSVStreamReaderGD.new(_file_path, _has_header, _delimiter)
 	

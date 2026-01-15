@@ -4,6 +4,8 @@ extends EditorImportPlugin
 
 ## CSV 文件导入插件，将 CSV 文件导入为 CSVResource 资源
 
+const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
+
 
 func _get_importer_name() -> String:
 	return "godotsv.importer"
@@ -80,7 +82,7 @@ func _get_option_visibility(path: String, option_name: StringName, options: Dict
 
 func _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array[String], gen_files: Array[String]) -> Error:
 	# 被动触发旧 *.translation 清理：仅在真正发生导入时执行，避免编辑器启动扫描期文件锁冲突。
-	GodotSV.request_legacy_translation_cleanup()
+	_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
 	# 创建 CSVLoader 实例
 	var loader: CSVLoader = CSVLoader.new()
