@@ -184,6 +184,6 @@ func _load_plugin_script(file_name: String) -> Script:
 		return null
 
 	var script_path: String = plugin_dir.path_join(file_name)
-	var res: Resource = load(script_path)
-	return res as Script
+	var script_res := load(script_path)
+	return script_res as Script
 #endregion
