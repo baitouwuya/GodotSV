@@ -80,14 +80,14 @@ func _get_option_visibility(path: String, option_name: StringName, options: Dict
 
 func _import(source_file: String, save_path: String, options: Dictionary, platform_variants: Array[String], gen_files: Array[String]) -> Error:
 	# 被动触发旧 *.translation 清理：仅在真正发生导入时执行，避免编辑器启动扫描期文件锁冲突。
-	EditorPlugin.request_legacy_translation_cleanup()
+	GodotSV.request_legacy_translation_cleanup()
 
 	# 创建 CSVLoader 实例
-	var loader := CSVLoader.new()
+	var loader: CSVLoader = CSVLoader.new()
 	
 	# 应用导入选项
-	var has_header := options.get("has_header", true)
-	var delimiter := options.get("delimiter", ",")
+	var has_header: bool = bool(options.get("has_header", true))
+	var delimiter: String = str(options.get("delimiter", ","))
 	
 	loader.load_file(source_file)
 	loader.with_header(has_header)
@@ -104,13 +104,13 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 			push_warning("CSV 导入警告: Schema 文件不存在: %s" % schema_path)
 	
 	# 解析 CSV 数据
-	var csv_resource := loader.parse_all()
+	var csv_resource: CSVResource = loader.parse_all()
 	csv_resource.source_csv_path = source_file
 	
 	# 检查是否有错误
 	if csv_resource.has_errors():
-		var errors := csv_resource.get_errors()
-		for error in errors:
+		var errors: Array[String] = csv_resource.get_errors()
+		for error: String in errors:
 			push_error("CSV 导入错误 (%s): %s" % [source_file, error])
 		return ERR_PARSE_ERROR
 	
