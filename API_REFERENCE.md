@@ -299,33 +299,40 @@ var prev_match := engine.FindPrevious(rows, "sword", 10, 5)
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `ValidateCell` | `(value: String, field_name: String, field_info: Dictionary) -> bool` | 验证单个单元格 |
-| `ValidateRow` | `(row: PackedStringArray, header: PackedStringArray, field_map: Dictionary) -> bool` | 验证整行数据 |
-| `ValidateTable` | `(rows: Array, header: PackedStringArray, field_map: Dictionary) -> bool` | 验证整表数据 |
-| `GetErrors` | `() -> Array` | 获取所有验证错误 |
-| `GetErrorCount` | `() -> int` | 获取错误数量 |
-| `GetLastError` | `() -> Dictionary` | 获取最后一个错误 |
-| `ClearErrors` | `()` | 清除所有错误 |
-| `HasErrors` | `() -> bool` | 是否有错误 |
+| `validate_cell` | `(value: String, field_name: String, field_info: Dictionary) -> bool` | 验证单个单元格 |
+| `validate_row` | `(row: PackedStringArray, header: PackedStringArray, field_map: Dictionary) -> bool` | 验证整行数据 |
+| `validate_table` | `(rows: Array, header: PackedStringArray, field_map: Dictionary) -> bool` | 验证整表数据 |
+| `get_errors` | `() -> Array` | 获取所有验证错误 |
+| `get_error_count` | `() -> int` | 获取错误数量 |
+| `get_last_error` | `() -> Dictionary` | 获取最后一个错误 |
+| `clear_errors` | `()` | 清除所有错误 |
+| `has_errors` | `() -> bool` | 是否有错误 |
 
 #### field_info 字典结构
 
+> 注意：`field_info["name"]` 会用于生成错误信息中的字段名；`field_info["type"]` 推荐使用小写字符串（`"int"`、`"float"`、`"bool"`、`"enum"`、`"string"`）。
+
 ```gdscript
 {
-    "type": String,           # 字段类型
+    "name": String,           # 字段名（用于错误信息）
+    "type": String,           # 字段类型（推荐小写："int"/"float"/"bool"/"enum"/"string"）
     "required": bool,         # 是否必需
     "default": Variant,       # 默认值
     "range": String,          # 范围约束（如 "0..100"）
     "enum_values": Array,     # 枚举值列表
-    "resource_type": String   # 资源类型
+    "resource_type": String   # 资源类型（可选）
 }
 ```
 
 #### 错误信息格式
 
+> 注意：
+> - `validate_table()` 会返回真实的 `row` / `column`，用于精确定位错误位置。
+> - `validate_cell()` / `validate_row()` 场景下，`row` 可能为 `-1`（因为调用方未提供具体行号）。
+
 ```gdscript
 {
-    "row": int,              # 行号
+    "row": int,              # 行号（validate_cell/validate_row 场景可能为 -1）
     "column": int,           # 列号
     "field_name": String,    # 字段名
     "error_message": String, # 错误消息
@@ -340,23 +347,23 @@ var validator := CSVDataValidator.new()
 
 # 定义字段映射
 var field_map := {
-    "id": {"type": "int", "required": true, "range": "1..9999"},
-    "name": {"type": "string", "required": true},
-    "price": {"type": "float", "range": "0.0..999999.0"},
-    "rarity": {"type": "enum", "enum_values": ["common", "rare", "epic", "legendary"]}
+    "id": {"name": "id", "type": "int", "required": true, "range": "1..9999"},
+    "name": {"name": "name", "type": "string", "required": true},
+    "price": {"name": "price", "type": "float", "range": "0.0..999999.0"},
+    "rarity": {"name": "rarity", "type": "enum", "enum_values": ["common", "rare", "epic", "legendary"]}
 }
 
 # 验证整表
-var is_valid := validator.ValidateTable(rows, header, field_map)
+var is_valid := validator.validate_table(rows, header, field_map)
 
-if validator.HasErrors():
-    print("验证失败，共有 %d 个错误：" % validator.GetErrorCount())
-    for error in validator.GetErrors():
+if validator.has_errors():
+    print("验证失败，共有 %d 个错误：" % validator.get_error_count())
+    for error in validator.get_errors():
         print("  行%d 列%d %s: %s" % [error.row, error.column, error.field_name, error.error_message])
 
 # 验证单行
 var row := PackedStringArray(["5", "Super Sword", "9999.0", "epic"])
-is_valid = validator.ValidateRow(row, header, field_map)
+is_valid = validator.validate_row(row, header, field_map)
 ```
 
 ---
