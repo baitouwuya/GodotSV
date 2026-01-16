@@ -1,4 +1,4 @@
-class_name CSVDataProcessor
+class_name GDSVDataProcessor
 extends Node
 
 ## CSV 数据处理器，封装所有 C++ 模块的 GDScript 接口
@@ -40,6 +40,9 @@ var last_error: String = ""
 
 ## 是否有错误
 var has_error: bool = false
+
+## 原始文件扩展名（用于保存时保留）
+var original_file_extension: String = ".gdsv"
 #endregion
 
 #region 私有变量 Private Variables
@@ -102,6 +105,12 @@ func load_csv_file(file_path: String) -> bool:
 		_set_error(ERROR_FILE_NOT_FOUND)
 		file_loaded.emit(false, last_error)
 		return false
+
+	# 存储原始文件扩展名
+	if file_path.contains("."):
+		original_file_extension = "." + file_path.get_extension()
+	else:
+		original_file_extension = ".gdsv"
 
 	# 基于后缀自动推断分隔符（用于 .gdsv/.tsv/.tab 等）
 	default_delimiter = _infer_default_delimiter_for_file(file_path)
@@ -168,6 +177,13 @@ func load_csv_content(content: String, file_path: String = "") -> bool:
 	
 	last_file_path = file_path
 	
+	# 如果有文件路径，更新文件扩展名
+	if not file_path.is_empty():
+		if file_path.contains("."):
+			original_file_extension = "." + file_path.get_extension()
+		else:
+			original_file_extension = ".gdsv"
+	
 	# 记录文件修改时间
 	if not file_path.is_empty() and FileAccess.file_exists(file_path):
 		last_file_modified_time = FileAccess.get_modified_time(file_path)
@@ -182,7 +198,15 @@ func load_csv_content(content: String, file_path: String = "") -> bool:
 ## 保存 CSV 文件
 func save_csv_file(file_path: String) -> bool:
 	_reset_error_state()
-	
+
+	# 重要：按调用方传入的路径原样保存。
+	# 之前的“同路径强制改回 original_file_extension”会导致：
+	# - 用户以为保存的是 `xxx.csv`，实际写到了 `xxx.gdsv`（或反之）
+	# - 表现为“点保存并关闭了，但磁盘文件没变化”（其实写到了另一个文件）
+	# 因此仅在“完全没有扩展名”时才补默认扩展名。
+	if file_path.get_extension().is_empty():
+		file_path = file_path + original_file_extension
+
 	var content := get_csv_string()
 	if content.is_empty():
 		_set_error("没有数据可保存")

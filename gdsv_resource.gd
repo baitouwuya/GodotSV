@@ -1,5 +1,5 @@
 @tool
-class_name CSVResource
+class_name GDSVResource
 extends Resource
 
 ## CSV 资源，用于存储解析后的 CSV 数据
@@ -198,6 +198,6 @@ static func ensure_registered() -> void:
 		return
 
 	# 创建一次实例即可触发脚本类注册，不持有引用避免泄漏
-	var _tmp := CSVResource.new()
+	var _tmp := GDSVResource.new()
 	_tmp = null
 #endregion

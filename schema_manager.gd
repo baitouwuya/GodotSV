@@ -52,10 +52,10 @@ var _schema_file_mod_time: int = 0
 var _external_schema_priority: bool = true
 
 ## 数据处理器引用
-var _data_processor: CSVDataProcessor
+var _data_processor: GDSVDataProcessor
 
 ## 状态管理器引用
-var _state_manager: CSVStateManager
+var _state_manager: GDSVStateManager
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
@@ -84,12 +84,12 @@ func _initialize_file_watcher() -> void:
 
 
 ## 设置数据处理器
-func set_data_processor(processor: CSVDataProcessor) -> void:
+func set_data_processor(processor: GDSVDataProcessor) -> void:
 	_data_processor = processor
 
 
 ## 设置状态管理器
-func set_state_manager(manager: CSVStateManager) -> void:
+func set_state_manager(manager: GDSVStateManager) -> void:
 	_state_manager = manager
 #endregion
 
@@ -312,6 +312,12 @@ func _start_file_watcher(schema_path: String) -> void:
 	
 	_file_watcher.timeout.disconnect(_on_file_watcher_timeout)
 	_file_watcher.timeout.connect(_on_file_watcher_timeout.bind(schema_path))
+	
+	# Timer 未进场景树时 start 会报错（编辑器插件/面板刷新阶段可能触发）。
+	if not _file_watcher.is_inside_tree():
+		call_deferred("_start_file_watcher", schema_path)
+		return
+	
 	_file_watcher.start()
 
 

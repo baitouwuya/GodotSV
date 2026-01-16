@@ -1,11 +1,11 @@
 @tool
-class_name CSVEditorPlugin
+class_name GDSVEditorPlugin
 extends EditorPlugin
 
 ## CSV 编辑器插件入口，负责管理 CSV 文件的编辑和面板显示
 
 #region 常量 Constants
-## 面板当前使用纯代码构建（CSVEditorPanel.new()），不依赖.tscn文件
+## 面板当前使用纯代码构建（GDSVEditorPanel.new()），不依赖.tscn文件
 const CSV_EDITOR_PANEL_PATH = ""
 const CSV_FILE_EXTENSION = ".csv"
 const GDSV_FILE_EXTENSION = ".gdsv"
@@ -14,7 +14,7 @@ const DEFAULT_BOTTOM_PANEL_HEIGHT: float = 320.0
 
 #region 公共变量 Public Variables
 ## CSV 编辑器面板实例
-var editor_panel: CSVEditorPanel
+var editor_panel: GDSVEditorPanel
 
 ## 当前编辑的文件路径
 var current_file_path: String = ""
@@ -26,7 +26,7 @@ var is_panel_loaded: bool = false
 #region 私有变量 Private Variables
 var _bottom_panel_button: Button
 var _tab_container: TabContainer
-var _file_tabs: Dictionary = {}  # {file_path: CSVEditorTab}
+var _file_tabs: Dictionary = {}  # {file_path: GDSVEditorTab}
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
@@ -46,7 +46,7 @@ func _exit_tree() -> void:
 ## 加载编辑器面板
 func _load_editor_panel() -> void:
 	# 当前实现使用纯代码构建面板，避免对.tscn文件的强依赖
-	editor_panel = CSVEditorPanel.new()
+	editor_panel = GDSVEditorPanel.new()
 	editor_panel.custom_minimum_size = Vector2(0.0, DEFAULT_BOTTOM_PANEL_HEIGHT)
 	editor_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	is_panel_loaded = true
@@ -57,7 +57,7 @@ func _setup_bottom_panel() -> void:
 	if not editor_panel:
 		return
 	
-	_bottom_panel_button = add_control_to_bottom_panel(editor_panel, "CSV 编辑器")
+	_bottom_panel_button = add_control_to_bottom_panel(editor_panel, "GDSV 编辑器")
 	_make_visible(false)
 
 
@@ -71,11 +71,12 @@ func _cleanup_bottom_panel() -> void:
 #region 文件处理功能 File Handling Features
 ## 检查是否处理该文件
 func _handles(object: Object) -> bool:
-	if object is CSVResource:
+	if object is GDSVResource:
 		return true
 	if object is Resource:
 		var path: String = (object as Resource).resource_path
-		return path.ends_with(CSV_FILE_EXTENSION) or path.ends_with(GDSV_FILE_EXTENSION)
+		# 只处理 .gdsv 文件，不处理 .csv 文件
+		return path.ends_with(GDSV_FILE_EXTENSION)
 	return false
 
 
@@ -83,28 +84,50 @@ func _handles(object: Object) -> bool:
 func _edit(object: Object) -> void:
 	if not object or not editor_panel:
 		return
-	
+
 	var csv_path := ""
-	if object is CSVResource:
-		csv_path = (object as CSVResource).source_csv_path
+	if object is GDSVResource:
+		csv_path = (object as GDSVResource).source_csv_path
 		if csv_path.is_empty() and object is Resource:
-			# 兼容旧版本导入产物：CSVResource 里可能还没保存 source_csv_path。
-			# 同时支持直接编辑 .csv / .gdsv。
+			# 兼容旧版本导入产物：GDSVResource 里可能还没保存 source_csv_path。
+			# 同时支持直接编辑 .gdsv。
 			var rp := (object as Resource).resource_path
-			if rp.ends_with(CSV_FILE_EXTENSION) or rp.ends_with(GDSV_FILE_EXTENSION):
+			if rp.ends_with(GDSV_FILE_EXTENSION):
 				csv_path = rp
 			else:
 				csv_path = _guess_source_csv_from_imported_resource_path(rp)
 	elif object is Resource:
-		csv_path = (object as Resource).resource_path
-	
+		var resource_path := (object as Resource).resource_path
+		# 如果是 .csv 文件，显示提示对话框
+		if resource_path.ends_with(CSV_FILE_EXTENSION):
+			_show_csv_import_dialog()
+			return
+		if resource_path.ends_with(GDSV_FILE_EXTENSION):
+			csv_path = resource_path
+
 	if csv_path.is_empty():
 		return
 	current_file_path = csv_path
-	
+
 	# 显示面板并加载文件
 	_make_visible(true)
 	editor_panel.load_file(csv_path)
+
+
+## 显示 CSV 导入提示对话框
+func _show_csv_import_dialog() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = "GDSV 文件编辑"
+	dialog.dialog_text = "CSV files cannot be directly edited. Please use 'Import CSV' from the menu to convert to GDSV format first."
+
+	# 添加到编辑器
+	EditorInterface.get_base_control().add_child(dialog)
+	dialog.popup_centered()
+
+	# 自动关闭对话框
+	dialog.confirmed.connect(func(): dialog.queue_free())
+	dialog.canceled.connect(func(): dialog.queue_free())
+	dialog.close_requested.connect(func(): dialog.queue_free())
 
 
 func _guess_source_csv_from_imported_resource_path(imported_resource_path: String) -> String:
@@ -158,7 +181,7 @@ func _make_visible(visible: bool) -> void:
 
 ## 获取主控件
 func _get_plugin_name() -> String:
-	return "CSV 编辑器"
+	return "GDSV 编辑器"
 
 
 ## 获取插件图标
@@ -251,7 +274,7 @@ func is_file_open(file_path: String) -> bool:
 
 #region 工具方法 Utility Methods
 ## 获取当前编辑器面板
-func get_editor_panel() -> CSVEditorPanel:
+func get_editor_panel() -> GDSVEditorPanel:
 	return editor_panel
 
 

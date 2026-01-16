@@ -1,4 +1,4 @@
-class_name CSVDataModel
+class_name GDSVDataModel
 extends Node
 
 ## CSV 数据模型，封装表格数据和数据操作逻辑
@@ -26,7 +26,7 @@ signal selection_changed(selections: Array)
 
 #region 导出变量 Export Variables
 ## 数据处理器实例
-@export var data_processor: CSVDataProcessor
+@export var data_processor: GDSVDataProcessor
 
 ## 是否启用撤销/重做
 @export var enable_undo_redo: bool = true
@@ -41,6 +41,9 @@ var editing_cell: Vector2i = Vector2i(-1, -1)
 
 ## 撤销/重做管理器
 var undo_redo: UndoRedo
+
+## 是否有未保存修改（每个标签页独立）
+var modified: bool = false
 #endregion
 
 #region 私有变量 Private Variables
@@ -81,7 +84,7 @@ func _initialize_undo_redo() -> void:
 	undo_redo = UndoRedo.new()
 
 
-func set_data_processor(processor: CSVDataProcessor) -> void:
+func set_data_processor(processor: GDSVDataProcessor) -> void:
 	if data_processor and data_processor.data_changed.is_connected(_on_data_processor_data_changed):
 		data_processor.data_changed.disconnect(_on_data_processor_data_changed)
 	
@@ -180,6 +183,7 @@ func set_cell_value(row_index: int, column_index: int, value: String) -> bool:
 	var new_value_str: String = value
 	cell_changed.emit(row_index, column_index, old_value_str, new_value_str)
 	data_changed.emit("cell_modified", {"row": row_index, "column": column_index, "old_value": old_value_str, "new_value": new_value_str})
+	modified = true
 	
 	return true
 
@@ -214,6 +218,7 @@ func batch_set_cells(cells: Array) -> int:
 			cell_changed.emit(row, col, old_value, new_value)
 	
 	data_changed.emit("batch_modified", {"count": cells.size()})
+	modified = true
 	
 	return cells.size()
 
@@ -242,6 +247,7 @@ func insert_row(row_index: int, row_data: Array[PackedStringArray] = []) -> bool
 	
 	row_inserted.emit(row_index)
 	data_changed.emit("row_inserted", {"row_index": row_index})
+	modified = true
 	
 	return true
 
@@ -784,6 +790,17 @@ func has_redo() -> bool:
 func clear_undo_redo_history() -> void:
 	if undo_redo:
 		undo_redo.clear_history()
+#endregion
+
+#region 状态查询功能 State Query Features
+## 是否有未保存修改
+func is_modified() -> bool:
+	return modified
+
+
+## 清除未保存修改标记（保存成功后调用）
+func clear_modified() -> void:
+	modified = false
 #endregion
 
 #region 工具方法 Utility Methods

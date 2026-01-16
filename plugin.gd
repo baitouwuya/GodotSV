@@ -7,36 +7,31 @@ const CSV_IMPORTER_NAME := "godotsv.importer"
 const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
 const INVALID_TRANSLATION_NAME_CHARS := [":", "[", "]", "(", ")"]
 
-var _import_plugin: CSVImportPlugin = null
-var _editor_plugin: CSVEditorPlugin = null
-var _gdsv_import_plugin: EditorImportPlugin = null
+var _unified_import_plugin: EditorImportPlugin = null
+var _editor_plugin: GDSVEditorPlugin = null
 var _legacy_cleanup_attempts: int = 0
 
 
 #region 生命周期方法 Lifecycle Methods
 func _enter_tree() -> void:
 	add_to_group("godotsv_plugin")
-	# 确保 CSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
-	var csv_resource_script := _load_plugin_script("csv_resource.gd")
+	# 确保 GDSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
+	var csv_resource_script := _load_plugin_script("gdsv_resource.gd")
 	if csv_resource_script == null:
-		push_error("GodotSV: 无法加载 csv_resource.gd（请确认插件目录完整）")
+		push_error("GodotSV: 无法加载 gdsv_resource.gd（请确认插件目录完整）")
 		return
 
-	# 触发CSVResource的class_name注册（编辑器启动早期时序问题）
-	CSVResource.ensure_registered()
+	# 触发GDSVResource的class_name注册（编辑器启动早期时序问题）
+	GDSVResource.ensure_registered()
 
-	# 创建并注册导入插件
-	_import_plugin = CSVImportPlugin.new()
-	add_import_plugin(_import_plugin)
-
-	# 注册 GDSV 导入插件
-	_gdsv_import_plugin = preload("gdsv_import_plugin.gd").new()
-	add_import_plugin(_gdsv_import_plugin)
+	# 创建并注册统一导入插件（支持 .gdsv, .csv, .tsv, .tab, .psv, .asc）
+	_unified_import_plugin = preload("unified_gdsv_import_plugin.gd").new()
+	add_import_plugin(_unified_import_plugin)
 
 	# 创建并托管编辑器插件
 	# 注意：不要手动调用另一个 EditorPlugin 的 _enter_tree/_exit_tree，
 	# 否则会导致快捷键/动作注册异常、生命周期错乱。
-	_editor_plugin = CSVEditorPlugin.new()
+	_editor_plugin = GDSVEditorPlugin.new()
 	add_child(_editor_plugin)
 	_editor_plugin.owner = self
 
@@ -48,16 +43,10 @@ func _enter_tree() -> void:
 
 func _exit_tree() -> void:
 	remove_from_group("godotsv_plugin")
-	# 移除导入插件
-	if _import_plugin != null:
-		remove_import_plugin(_import_plugin)
-		_import_plugin.queue_free()
-		_import_plugin = null
-
-	# 移除 GDSV 导入插件
-	if _gdsv_import_plugin != null:
-		remove_import_plugin(_gdsv_import_plugin)
-		_gdsv_import_plugin = null
+	# 移除统一导入插件
+	if _unified_import_plugin != null:
+		remove_import_plugin(_unified_import_plugin)
+		_unified_import_plugin = null
 
 	# 清理编辑器插件
 	if _editor_plugin != null:

@@ -50,16 +50,16 @@ const COLOR_NORMAL: Color = Color(0.0, 0.0, 0.0, 0.0)
 
 #region 私有变量 Private Variables
 ## 数据处理器引用
-var _data_processor: CSVDataProcessor
+var _data_processor: GDSVDataProcessor
 
 ## Schema 管理器引用
 var _schema_manager: SchemaManager
 
 ## 状态管理器引用
-var _state_manager: CSVStateManager
+var _state_manager: GDSVStateManager
 
 ## 数据模型引用（用于获取更细粒度的单元格变化事件）
-var _data_model: CSVDataModel
+var _data_model: GDSVDataModel
 
 ## 错误列表 {row: {column: error_data}}
 var _errors: Dictionary = {}
@@ -82,41 +82,29 @@ var _real_time_validation: bool = true
 ## 验证延迟（秒）
 var _validation_delay: float = 0.15
 
-## 验证定时器
-var _validation_timer: Timer
-
 ## 当前验证队列
 var _validation_queue: Array[Dictionary] = []
+
+## 是否已安排一次队列刷新（用于防抖/合并）
+var _is_validation_flush_scheduled: bool = false
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
 func _init() -> void:
-	_initialize_validation_timer()
+	pass
 
 
 func _ready() -> void:
-	if _validation_timer:
-		add_child(_validation_timer)
+	pass
 
 
 func _exit_tree() -> void:
-	if _validation_timer:
-		_validation_timer.queue_free()
-		_validation_timer = null
+	pass
 #endregion
 
 #region 初始化功能 Initialization Features
-## 初始化验证定时器
-func _initialize_validation_timer() -> void:
-	_validation_timer = Timer.new()
-	_validation_timer.wait_time = _validation_delay
-	_validation_timer.autostart = false
-	_validation_timer.one_shot = true
-	_validation_timer.timeout.connect(_on_validation_timer_timeout)
-
-
 ## 设置数据处理器
-func set_data_processor(processor: CSVDataProcessor) -> void:
+func set_data_processor(processor: GDSVDataProcessor) -> void:
 	if _data_processor and _data_processor.data_changed.is_connected(_on_data_changed):
 		_data_processor.data_changed.disconnect(_on_data_changed)
 	
@@ -133,7 +121,7 @@ func set_schema_manager(manager: SchemaManager) -> void:
 
 
 ## 设置状态管理器
-func set_state_manager(manager: CSVStateManager) -> void:
+func set_state_manager(manager: GDSVStateManager) -> void:
 	_state_manager = manager
 	_connect_to_data_model_from_state_manager()
 
@@ -462,9 +450,20 @@ func schedule_cell_validation(row: int, column: int) -> void:
 	# 添加到验证队列
 	_validation_queue.append({"row": row, "column": column})
 	
-	# 启动验证定时器
-	if _validation_timer:
-		_validation_timer.start()
+	_schedule_validation_flush()
+
+
+func _schedule_validation_flush() -> void:
+	if _is_validation_flush_scheduled:
+		return
+	
+	_is_validation_flush_scheduled = true
+	call_deferred("_flush_validation_queue")
+
+
+func _flush_validation_queue() -> void:
+	_is_validation_flush_scheduled = false
+	_execute_validation_queue()
 
 
 ## 执行验证队列
@@ -487,11 +486,6 @@ func _execute_validation_queue() -> void:
 			_add_error(error)
 	
 	_validation_queue.clear()
-
-
-## 验证定时器超时回调
-func _on_validation_timer_timeout() -> void:
-	_execute_validation_queue()
 #endregion
 
 #region 错误管理功能 Error Management Features
@@ -647,8 +641,6 @@ func get_real_time_validation() -> bool:
 ## 设置验证延迟
 func set_validation_delay(delay: float) -> void:
 	_validation_delay = delay
-	if _validation_timer:
-		_validation_timer.wait_time = delay
 
 
 ## 获取验证延迟

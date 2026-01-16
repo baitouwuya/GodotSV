@@ -1,4 +1,4 @@
-class_name CSVEditorPanel
+class_name GDSVEditorPanel
 extends Control
 
 ## CSV 编辑器面板，包含工具栏、表格视图和状态栏
@@ -51,13 +51,13 @@ var status_bar: HBoxContainer
 
 #region 私有变量 Private Variables
 ## 数据处理器
-var _data_processor: CSVDataProcessor
+var _data_processor: GDSVDataProcessor
 
 ## 数据模型
-var _data_model: CSVDataModel
+var _data_model: GDSVDataModel
 
 ## 状态管理器
-var _state_manager: CSVStateManager
+var _state_manager: GDSVStateManager
 
 ## Schema 管理器
 var _schema_manager: SchemaManager
@@ -140,7 +140,8 @@ var _show_replace: bool = false
 ## 验证管理器
 var _validation_manager: ValidationManager
 
-## 当前打开的文件映射 {file_path: tab_control}
+## 当前打开的文件映射 {binding_key(uid优先): tab_control}
+## 注意：binding_key = uid://...（可用时）否则为 file_path
 var _open_files: Dictionary = {}
 
 ## 当前活动的标签页索引
@@ -173,9 +174,9 @@ func _exit_tree() -> void:
 
 #region 初始化功能 Initialization Features
 func _initialize_data_components() -> void:
-	_data_processor = CSVDataProcessor.new()
-	_data_model = CSVDataModel.new()
-	_state_manager = CSVStateManager.new()
+	_data_processor = GDSVDataProcessor.new()
+	_data_model = GDSVDataModel.new()
+	_state_manager = GDSVStateManager.new()
 	_schema_manager = SchemaManager.new()
 	_validation_manager = ValidationManager.new()
 	_ui_style_manager = UIStyleManager.new()
@@ -636,46 +637,47 @@ func load_file(file_path: String) -> bool:
 	if file_path.is_empty():
 		push_error("文件路径为空")
 		return false
-	
-	# 检查文件是否已打开
-	if _open_files.has(file_path):
-		# 切换到已打开的标签页
-		_switch_to_file(file_path)
+
+	var binding_key := _get_binding_key_for_file(file_path)
+
+	# 检查文件是否已打开（用 uid 优先的 key）
+	if _open_files.has(binding_key):
+		_switch_to_binding_key(binding_key)
 		return true
-	
+
 	# 为当前文件创建独立的数据处理器/数据模型（多标签页必须隔离数据源）
-	var tab_processor := CSVDataProcessor.new()
+	var tab_processor := GDSVDataProcessor.new()
 	# 同步面板级默认配置
 	tab_processor.auto_trim_whitespace = _data_processor.auto_trim_whitespace
 	tab_processor.default_delimiter = _data_processor.default_delimiter
-	
+
 	var success := tab_processor.load_csv_file(file_path)
 	if not success:
 		push_error("加载文件失败: " + tab_processor.last_error)
 		return false
-	
-	var tab_model := CSVDataModel.new()
+
+	var tab_model := GDSVDataModel.new()
 	tab_model.set_data_processor(tab_processor)
-	
+
 	# 自动检测并加载 Schema（Schema/Validation/StateManager 仍是全局共享）
 	var schema_path := _schema_manager.auto_detect_schema(file_path)
 	if not schema_path.is_empty():
 		_schema_manager.load_schema(schema_path)
-	
+
 	# 创建标签页（每个 tab 绑定自己的 data_model/data_processor）
-	var tab_control := _create_tab_control(file_path, tab_model, tab_processor)
+	var tab_control := _create_tab_control(file_path, tab_model, tab_processor, binding_key)
 	_tab_container.add_child(tab_control)
 	_tab_container.current_tab = _tab_container.get_tab_count() - 1
-	
+
 	# 记录打开的文件
-	_open_files[file_path] = tab_control
-	
-	# 设置状态
+	_open_files[binding_key] = tab_control
+
+	# 设置状态（仍使用 file_path 作为“当前文件”的对外展示）
 	_state_manager.set_file_path(file_path)
-	
+
 	file_loaded.emit(file_path)
 	_update_status_bar()
-	
+
 	return true
 
 
@@ -696,73 +698,134 @@ func save_current_file() -> bool:
 func save_file(file_path: String) -> bool:
 	if file_path.is_empty():
 		return false
-	
-	var success := _data_processor.save_csv_file(file_path)
+
+	# 多标签页：必须保存对应 tab 自己的 data_processor，不能用面板级 _data_processor。
+	var binding_key := _get_binding_key_for_file(file_path)
+	var tab_control: Control = _open_files.get(binding_key) as Control
+	var processor: GDSVDataProcessor = null
+	var model: GDSVDataModel = null
+	if tab_control:
+		if tab_control.has_method("get_data_processor"):
+			processor = tab_control.get_data_processor() as GDSVDataProcessor
+		if tab_control.has_method("get_data_model"):
+			model = tab_control.get_data_model() as GDSVDataModel
+
+	# 兜底：如果没取到，就回退使用当前活跃的 _data_processor。
+	if not processor:
+		processor = _data_processor
+
+	var success := processor.save_csv_file(file_path)
 	if success:
-		_state_manager.mark_file_saved()
+		# 保存成功后：清除“该 tab”的修改状态。
+		if model and model.has_method("clear_modified"):
+			model.clear_modified()
+		else:
+			# 兼容旧模型：只能清全局状态（只对当前 tab 完全准确）
+			_state_manager.mark_file_saved()
+
 		file_saved.emit(file_path)
 		_update_status_bar()
-		
+
 		# 更新标签页标题
-		if _open_files.has(file_path):
-			var tab_index := _get_tab_index_by_path(file_path)
-			if tab_index >= 0:
-				_tab_container.set_tab_title(tab_index, file_path.get_file())
-	
+		var tab_index := _get_tab_index_by_binding_key(binding_key)
+		if tab_index >= 0:
+			_tab_container.set_tab_title(tab_index, file_path.get_file())
+
 	return success
+
 
 
 ## 关闭文件
 func close_file(file_path: String) -> void:
-	if not _open_files.has(file_path):
+	var binding_key := _get_binding_key_for_file(file_path)
+	if not _open_files.has(binding_key):
 		return
-	
-	var tab_control: Control = _open_files[file_path] as Control
-	var tab_index := _get_tab_index_by_path(file_path)
-	
-	# 检查是否需要保存
-	if _state_manager.is_file_modified():
-		var confirm: bool = await _show_save_confirmation(file_path)
-		if not confirm:
-			return
-		else:
-			save_file(file_path)
-	
-	# 移除标签页
-	_tab_container.remove_child(tab_control)
+
+	var tab_control: Control = _open_files[binding_key] as Control
+
+	# 注意：StateManager 是“当前活跃文件”的状态。
+	# 关闭非当前 tab 时，不应使用 _state_manager.is_file_modified() 判断。
+	var is_modified := false
+	if tab_control and tab_control.has_method("get_data_model"):
+		var m: GDSVDataModel = tab_control.get_data_model()
+		if m:
+			is_modified = bool(m.is_modified())
+
+	if not is_modified:
+		_close_file_internal(file_path, binding_key)
+		return
+
+	_show_save_confirmation(file_path,
+		func(choice: StringName) -> void:
+			match str(choice):
+				"save":
+					if save_file(file_path):
+						_close_file_internal(file_path, binding_key)
+					else:
+						push_error("保存失败，未关闭文件: " + file_path)
+				"dont_save":
+					_close_file_internal(file_path, binding_key)
+				_: # cancel / other
+					pass
+	)
+
+
+func _close_file_internal(file_path: String, binding_key: String) -> void:
+	var tab_control: Control = _open_files.get(binding_key) as Control
+	if not tab_control or not is_instance_valid(tab_control):
+		_open_files.erase(binding_key)
+		return
+
+	# 先从容器移除，再释放，确保标签页 UI 立即更新
+	if tab_control.get_parent() == _tab_container:
+		_tab_container.remove_child(tab_control)
 	tab_control.queue_free()
-	
-	# 从映射中移除
-	_open_files.erase(file_path)
-	
-	# 若还有其他标签页，切换到一个仍打开的文件，避免 close_file 重置掉当前活跃 tab 的状态
+
+	_open_files.erase(binding_key)
+
 	if _tab_container.get_tab_count() > 0:
 		_tab_container.current_tab = clampi(_tab_container.current_tab, 0, _tab_container.get_tab_count() - 1)
 	else:
-		# 仅在最后一个标签页关闭时才重置状态管理器
 		_state_manager.close_file()
-	
+
 	file_closed.emit(file_path)
 	_update_status_bar()
 
 
 ## 显示保存确认对话框
-func _show_save_confirmation(file_path: String) -> bool:
+func _show_save_confirmation(file_path: String, on_choice: Callable) -> void:
 	var dialog := ConfirmationDialog.new()
 	dialog.title = "保存文件"
 	dialog.dialog_text = "文件 " + file_path.get_file() + " 已修改，是否保存？"
 	dialog.get_ok_button().text = "保存"
-	dialog.cancel_button_text = "不保存"
-	dialog.add_button("取消", true)
-	
+	dialog.cancel_button_text = "取消"
+	dialog.add_button("不保存", false, "dont_save")
 	add_child(dialog)
+
+	var _emit_and_close := func(action: StringName) -> void:
+		if on_choice:
+			on_choice.call(action)
+		dialog.hide()
+		dialog.queue_free()
+
+	dialog.confirmed.connect(func() -> void:
+		_emit_and_close.call("save")
+	)
+	dialog.canceled.connect(func() -> void:
+		_emit_and_close.call("cancel")
+	)
+	dialog.custom_action.connect(func(action: StringName) -> void:
+		if str(action) == "dont_save":
+			_emit_and_close.call("dont_save")
+		else:
+			_emit_and_close.call("cancel")
+	)
+	# 兜底：用户按右上角关闭按钮
+	dialog.close_requested.connect(func() -> void:
+		_emit_and_close.call("cancel")
+	)
+
 	dialog.popup_centered()
-	
-	var result: bool = await dialog.confirmed
-	dialog.queue_free()
-	
-	# 返回true表示确认保存，false表示不保存或取消
-	return result
 
 
 ## 检查外部文件修改
@@ -795,17 +858,24 @@ func _on_reload_confirmed() -> void:
 
 ## 关闭所有文件
 func close_all_files() -> void:
-	var files := _open_files.keys()
-	for file_path in files:
-		close_file(file_path)
+	var binding_keys := _open_files.keys()
+	for binding_key in binding_keys:
+		var tab_control := _open_files.get(binding_key) as Object
+		if tab_control and tab_control.has_method("get_file_path"):
+			close_file(tab_control.get_file_path())
 #endregion
 
 #region 标签页管理功能 Tab Management Features
 ## 创建标签页控件
-func _create_tab_control(file_path: String, tab_model: CSVDataModel, tab_processor: CSVDataProcessor) -> Control:
-	var tab_control := CSVEditorTab.new()
+func _create_tab_control(file_path: String, tab_model: GDSVDataModel, tab_processor: GDSVDataProcessor, binding_key: String) -> Control:
+	var tab_control := GDSVEditorTab.new()
 	tab_control.name = file_path.get_file()
 	tab_control._file_path = file_path
+	# 统一绑定：优先用 uid:// 作为编号
+	if str(binding_key).begins_with("uid://"):
+		tab_control._doc_uid = binding_key
+	else:
+		tab_control._doc_uid = ""
 	tab_control._data_model = tab_model
 	tab_control._data_processor = tab_processor
 	tab_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -819,7 +889,7 @@ func _create_tab_control(file_path: String, tab_model: CSVDataModel, tab_process
 
 
 ## 创建表格视图
-func _create_table_view(tab_model: CSVDataModel, tab_processor: CSVDataProcessor) -> Control:
+func _create_table_view(tab_model: GDSVDataModel, tab_processor: GDSVDataProcessor) -> Control:
 	var table_view := TableView.new()
 	table_view.set_data_model(tab_model)
 	table_view.set_state_manager(_state_manager)
@@ -834,28 +904,49 @@ func _create_table_view(tab_model: CSVDataModel, tab_processor: CSVDataProcessor
 		table_view.set_text_overflow_mode(_get_text_overflow_mode())
 
 	# 连接行列操作信号
-	table_view.row_requested.connect(_on_row_operation_requested)
-	table_view.row_reordered.connect(_on_row_reordered)
-	table_view.column_requested.connect(_on_column_operation_requested)
-	table_view.column_settings_requested.connect(_on_column_settings_requested)
-	table_view.fields_settings_requested.connect(_on_fields_settings_requested)
-	table_view.cell_selected.connect(_on_table_cell_selected)
+	if not table_view.row_requested.is_connected(_on_row_operation_requested):
+		table_view.row_requested.connect(_on_row_operation_requested)
+	if not table_view.row_reordered.is_connected(_on_row_reordered):
+		table_view.row_reordered.connect(_on_row_reordered)
+	if not table_view.column_requested.is_connected(_on_column_operation_requested):
+		table_view.column_requested.connect(_on_column_operation_requested)
+	if not table_view.column_settings_requested.is_connected(_on_column_settings_requested):
+		table_view.column_settings_requested.connect(_on_column_settings_requested)
+	if not table_view.fields_settings_requested.is_connected(_on_fields_settings_requested):
+		table_view.fields_settings_requested.connect(_on_fields_settings_requested)
+	if not table_view.cell_selected.is_connected(_on_table_cell_selected):
+		table_view.cell_selected.connect(_on_table_cell_selected)
 	
 	return table_view
 
 
-## 切换到指定文件
+## 切换到指定文件（兼容接口：内部转为 binding_key）
 func _switch_to_file(file_path: String) -> void:
-	var tab_index := _get_tab_index_by_path(file_path)
+	_switch_to_binding_key(_get_binding_key_for_file(file_path))
+
+
+## 切换到指定 binding_key（uid 优先）
+func _switch_to_binding_key(binding_key: String) -> void:
+	var tab_index := _get_tab_index_by_binding_key(binding_key)
 	if tab_index >= 0:
 		_tab_container.current_tab = tab_index
 
 
-## 获取文件对应的标签页索引
+## 获取文件对应的标签页索引（兼容接口：内部转为 binding_key）
 func _get_tab_index_by_path(file_path: String) -> int:
+	return _get_tab_index_by_binding_key(_get_binding_key_for_file(file_path))
+
+
+## 获取 binding_key 对应的标签页索引
+func _get_tab_index_by_binding_key(binding_key: String) -> int:
 	for i in range(_tab_container.get_tab_count()):
 		var tab_control := _tab_container.get_tab_control(i)
-		if tab_control.has_method("get_file_path") and tab_control.get_file_path() == file_path:
+		if not tab_control:
+			continue
+		if tab_control.has_method("get_binding_key") and tab_control.get_binding_key() == binding_key:
+			return i
+		# 兼容旧 tab：没有 get_binding_key 时用 file_path 对比
+		if tab_control.has_method("get_file_path") and tab_control.get_file_path() == binding_key:
 			return i
 	return -1
 
@@ -868,28 +959,39 @@ func _on_tab_changed(index: int) -> void:
 		var tab_control := _tab_container.get_tab_control(index)
 		if tab_control:
 			# 切换当前活跃的数据源（否则 Tab 只是“标签”，内容不会变）
-			if tab_control.has_method("get_data_processor"):
-				var p: CSVDataProcessor = tab_control.get_data_processor()
-				if p:
-					_data_processor = p
-					_schema_manager.set_data_processor(_data_processor)
-					_validation_manager.set_data_processor(_data_processor)
-					# 注意：StateManager 只绑定 DataModel（内部会通过 data_model.data_processor 访问）
-					_data_model.set_data_processor(_data_processor)
-			
+			# 注意：必须先切换 _data_model，再绑定 processor。
 			if tab_control.has_method("get_data_model"):
-				var m: CSVDataModel = tab_control.get_data_model()
+				var m: GDSVDataModel = tab_control.get_data_model()
 				if m:
 					_data_model = m
 					_state_manager.set_data_model(_data_model)
 			
+			if tab_control.has_method("get_data_processor"):
+				var p: GDSVDataProcessor = tab_control.get_data_processor()
+				if p:
+					_data_processor = p
+					_schema_manager.set_data_processor(_data_processor)
+					_validation_manager.set_data_processor(_data_processor)
+					_data_model.set_data_processor(_data_processor)
+			
 			if tab_control.has_method("get_file_path"):
 				var file_path: String = tab_control.get_file_path()
 				_state_manager.set_file_path(file_path)
+				# Tab 切换时：SchemaManager 为全局共享对象，必须清理旧 schema，
+				# 否则字段设置弹窗可能仍显示上一个文件的类型。
+				if _schema_manager:
+					_schema_manager.unload_schema()
 				_update_status_bar()
+			
+			# 主动刷新一次，避免 TabContainer 切换时 TableView 布局/可见行计算没更新
+			if tab_control.has_method("get_table_view"):
+				var tv = tab_control.get_table_view()
+				if tv and tv.has_method("refresh"):
+					tv.call_deferred("refresh")
 
 	_active_cell = Vector2i(-1, -1)
-	_update_cell_input_ui()
+	# Tab 切换后，底部输入区必须与当前表格重新绑定（类型/默认值等依赖 _data_model/_schema_manager）。
+	_refresh_cell_input_from_model()
 #endregion
 
 #region Schema和验证功能 Schema and Validation Features
@@ -969,8 +1071,8 @@ func _update_status_bar() -> void:
 #region 工具方法 Utility Methods
 ## 清理打开的文件
 func _cleanup_open_files() -> void:
-	for file_path in _open_files:
-		var tab_control: Object = _open_files[file_path]
+	for binding_key in _open_files:
+		var tab_control: Object = _open_files[binding_key]
 		if is_instance_valid(tab_control):
 			(tab_control as Node).queue_free()
 	_open_files.clear()
@@ -1039,6 +1141,7 @@ func _on_import_pressed() -> void:
 	var dialog := FileDialog.new()
 	dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 	dialog.title = "导入文件"
+	dialog.add_filter("*.gdsv; GDSV文件")
 	dialog.add_filter("*.csv; CSV文件")
 	dialog.add_filter("*.tsv; TSV文件")
 	dialog.add_filter("*.json; JSON文件")
@@ -1168,17 +1271,17 @@ func _on_validate_pressed() -> void:
 
 #region 辅助方法 Auxiliary Methods
 ## 获取数据处理器
-func get_data_processor() -> CSVDataProcessor:
+func get_data_processor() -> GDSVDataProcessor:
 	return _data_processor
 
 
 ## 获取数据模型
-func get_data_model() -> CSVDataModel:
+func get_data_model() -> GDSVDataModel:
 	return _data_model
 
 
 ## 获取状态管理器
-func get_state_manager() -> CSVStateManager:
+func get_state_manager() -> GDSVStateManager:
 	return _state_manager
 
 
@@ -1190,6 +1293,33 @@ func get_schema_manager() -> SchemaManager:
 ## 获取验证管理器
 func get_validation_manager() -> ValidationManager:
 	return _validation_manager
+#endregion
+
+#region 绑定工具方法 Binding Utilities
+## 生成稳定的绑定 key：优先 uid://，不可用则回退为 file_path
+func _get_binding_key_for_file(file_path: String) -> String:
+	var p := str(file_path).strip_edges()
+	if p.is_empty():
+		return ""
+	if p.begins_with("uid://"):
+		return p
+	if not p.begins_with("res://"):
+		# 外部路径/临时文件：无法稳定取 UID，回退使用原始路径
+		return p
+	# Godot 4.5：优先通过 ResourceUID 从路径获取 UID。
+	# 注意：不要通过 `Resource.resource_uid` 取（4.5 下 Resource 不一定暴露该属性，会报错）。
+	if not ResourceLoader.exists(p):
+		return p
+
+	# Godot 4.5.1：优先通过 ResourceLoader.get_resource_uid(path) 获取 UID。
+	# 说明：4.5.1 环境下 `ResourceUID.get_id()` 可能不存在，因此不能依赖该 API。
+	var uid_id: int = 0
+	if ResourceLoader.has_method("get_resource_uid"):
+		uid_id = int(ResourceLoader.get_resource_uid(p))
+
+	if uid_id == 0:
+		return p
+	return ResourceUID.id_to_text(uid_id)
 #endregion
 
 #region 行列操作回调 Row/Column Callbacks
@@ -1237,6 +1367,13 @@ func _on_column_settings_requested(column: int) -> void:
 		return
 
 	_ensure_fields_settings_dialog()
+	# 关键：多标签页切换后，弹窗可能仍绑定旧的 data_model，需要每次打开前刷新绑定。
+	_fields_settings_dialog.data_model = _data_model
+	_fields_settings_dialog.schema_manager = _schema_manager
+
+	# 注意：不要在这里隐式 load_schema()。
+	# SchemaManager 是全局共享的，但加载 schema 会直接覆盖 StateManager/DataModel 的类型定义，
+	# 若 schema 与当前表头不完全一致，会导致“全部变成 string / 第一列标红”等连锁问题。
 	_fields_settings_dialog.open_for_column(column)
 
 
@@ -1885,12 +2022,10 @@ func _open_cell_resource_selector() -> void:
 	# 选择资源后：写入 uid://（能取到时）或 res:// 路径
 	dialog.file_selected.connect(func(path: String) -> void:
 		var uid_text := ""
-		if ResourceLoader.exists(path):
-			var res: Resource = ResourceLoader.load(path)
-			if res:
-				var uid_id: int = int(res.resource_uid)
-				if uid_id != 0:
-					uid_text = ResourceUID.id_to_text(uid_id)
+		if ResourceLoader.exists(path) and ResourceLoader.has_method("get_resource_uid"):
+			var uid_id: int = int(ResourceLoader.get_resource_uid(path))
+			if uid_id != 0:
+				uid_text = ResourceUID.id_to_text(uid_id)
 
 		var new_value := path
 		if uid_text.begins_with("uid://"):
@@ -3270,6 +3405,13 @@ func _schedule_apply_cell_input() -> void:
 		return
 	if _active_cell.x < 0 or _active_cell.y < 0:
 		return
+
+	# Timer/面板未进树时不要 start，避免报错。
+	if not _cell_input_panel or not _cell_input_panel.is_inside_tree():
+		return
+	if not _cell_input_debounce_timer.is_inside_tree():
+		return
+
 	_cell_input_debounce_timer.start()
 
 
@@ -3434,8 +3576,8 @@ func _get_text_overflow_mode() -> int:
 
 
 func _for_each_table_view(action: Callable) -> void:
-	for file_path in _open_files.keys():
-		var tab_control := _open_files[file_path] as Object
+	for binding_key in _open_files.keys():
+		var tab_control := _open_files[binding_key] as Object
 		if tab_control and tab_control.has_method("get_table_view"):
 			var table_view = tab_control.get_table_view()
 			if table_view is TableView:

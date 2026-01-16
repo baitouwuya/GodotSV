@@ -88,7 +88,7 @@ const _OPTION_META_MORE: String = "__more__"
 const _MORE_ITEM_PREFIX: String = "更多: "
 const _MORE_ITEM_DEFAULT_TEXT: String = "更多: （选择类型...）"
 
-var data_model: CSVDataModel
+var data_model: GDSVDataModel
 var schema_manager: SchemaManager
 var config_manager: ConfigManager
 var commit_changes: Callable

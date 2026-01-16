@@ -80,10 +80,10 @@ enum TextOverflowMode {
 
 #region 公共变量 Public Variables
 ## 数据模型
-var data_model: CSVDataModel
+var data_model: GDSVDataModel
 
 ## 状态管理器
-var state_manager: CSVStateManager
+var state_manager: GDSVStateManager
 
 ## Schema 管理器
 var schema_manager: SchemaManager
@@ -1397,7 +1397,7 @@ func _initialize_context_menu() -> void:
 
 
 ## 设置数据模型
-func set_data_model(model: CSVDataModel) -> void:
+func set_data_model(model: GDSVDataModel) -> void:
 	data_model = model
 
 	if data_model:
@@ -1405,7 +1405,7 @@ func set_data_model(model: CSVDataModel) -> void:
 
 
 ## 设置状态管理器
-func set_state_manager(manager: CSVStateManager) -> void:
+func set_state_manager(manager: GDSVStateManager) -> void:
 	state_manager = manager
 
 

@@ -1,4 +1,4 @@
-class_name CSVFieldDefinition
+class_name GDSVFieldDefinition
 extends Resource
 
 ## CSV 字段定义，用于描述 CSV 文件中某个字段的类型、默认值和验证规则
@@ -53,50 +53,50 @@ func _init(p_field_name: StringName = &"", p_type: FieldType = FieldType.TYPE_ST
 
 
 ## 设置字段类型，返回 self 支持链式调用
-func with_type(p_type: FieldType) -> CSVFieldDefinition:
+func with_type(p_type: FieldType) -> GDSVFieldDefinition:
 	type = p_type
 	return self
 
 
 ## 设置默认值，返回 self 支持链式调用
-func with_default(p_default_value: Variant) -> CSVFieldDefinition:
+func with_default(p_default_value: Variant) -> GDSVFieldDefinition:
 	default_value = p_default_value
 	return self
 
 
 ## 设置是否必需，返回 self 支持链式调用
-func with_required(p_required: bool = true) -> CSVFieldDefinition:
+func with_required(p_required: bool = true) -> GDSVFieldDefinition:
 	required = p_required
 	return self
 
 
 ## 设置范围约束，返回 self 支持链式调用
-func with_range(p_min: Variant, p_max: Variant) -> CSVFieldDefinition:
+func with_range(p_min: Variant, p_max: Variant) -> GDSVFieldDefinition:
 	min_value = p_min
 	max_value = p_max
 	return self
 
 
 ## 设置枚举值，返回 self 支持链式调用
-func with_enum(p_enum_values: Array) -> CSVFieldDefinition:
+func with_enum(p_enum_values: Array) -> GDSVFieldDefinition:
 	enum_values = p_enum_values
 	return self
 
 
 ## 设置是否唯一，返回 self 支持链式调用
-func with_unique(p_unique: bool = true) -> CSVFieldDefinition:
+func with_unique(p_unique: bool = true) -> GDSVFieldDefinition:
 	unique = p_unique
 	return self
 
 
 ## 设置资源基础路径，返回 self 支持链式调用
-func with_resource_base_path(p_path: String) -> CSVFieldDefinition:
+func with_resource_base_path(p_path: String) -> GDSVFieldDefinition:
 	resource_base_path = p_path
 	return self
 
 
 ## 设置描述，返回 self 支持链式调用
-func with_description(p_desc: String) -> CSVFieldDefinition:
+func with_description(p_desc: String) -> GDSVFieldDefinition:
 	description = p_desc
 	return self
 

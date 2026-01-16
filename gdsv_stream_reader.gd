@@ -1,4 +1,4 @@
-class_name CSVStreamReaderGD
+class_name GDSVStreamReader
 extends RefCounted
 
 ## CSV 流式读取器，用于逐行读取大型 CSV 文件，减少内存占用
@@ -31,7 +31,7 @@ var _current_line_index: int = 0
 var _header_read: bool = false
 
 ## CSV Schema
-var _schema: CSVSchema = null
+var _schema: GDSVSchema = null
 
 ## 错误信息列表
 var _errors: Array[String] = []
@@ -200,7 +200,7 @@ func _convert_row_to_dict(row: PackedStringArray) -> Dictionary:
 ## 应用类型转换
 func _apply_type_conversions(row_data: Dictionary) -> void:
 	for field_name in _field_types:
-		var type: CSVFieldDefinition.FieldType = _field_types[field_name]
+		var type: GDSVFieldDefinition.FieldType = _field_types[field_name]
 		var value := row_data.get(field_name)
 		
 		if value == null:
@@ -210,38 +210,38 @@ func _apply_type_conversions(row_data: Dictionary) -> void:
 
 
 ## 转换值
-func _convert_value(value: Variant, type: CSVFieldDefinition.FieldType) -> Variant:
+func _convert_value(value: Variant, type: GDSVFieldDefinition.FieldType) -> Variant:
 	if value == null:
 		return null
 	
 	match type:
-		CSVFieldDefinition.FieldType.TYPE_INT:
+		GDSVFieldDefinition.FieldType.TYPE_INT:
 			return int(value)
-		CSVFieldDefinition.FieldType.TYPE_FLOAT:
+		GDSVFieldDefinition.FieldType.TYPE_FLOAT:
 			return float(value)
-		CSVFieldDefinition.FieldType.TYPE_BOOL:
+		GDSVFieldDefinition.FieldType.TYPE_BOOL:
 			if value is bool:
 				return value
 			if value is String:
 				return value.to_lower() == "true" or value == "1"
 			return bool(value)
-		CSVFieldDefinition.FieldType.TYPE_STRING_NAME:
+		GDSVFieldDefinition.FieldType.TYPE_STRING_NAME:
 			if value is StringName:
 				return value
 			return StringName(str(value))
-		CSVFieldDefinition.FieldType.TYPE_JSON:
+		GDSVFieldDefinition.FieldType.TYPE_JSON:
 			var json := JSON.new()
 			var error := json.parse(str(value))
 			if error == OK:
 				return json.data
 			return null
-		CSVFieldDefinition.FieldType.TYPE_ARRAY:
+		GDSVFieldDefinition.FieldType.TYPE_ARRAY:
 			if value is Array:
 				return value
 			if value is String:
 				return value.split(_delimiter, false)
 			return []
-		CSVFieldDefinition.FieldType.TYPE_RESOURCE, CSVFieldDefinition.FieldType.TYPE_TEXTURE, CSVFieldDefinition.FieldType.TYPE_SCENE:
+		GDSVFieldDefinition.FieldType.TYPE_RESOURCE, GDSVFieldDefinition.FieldType.TYPE_TEXTURE, GDSVFieldDefinition.FieldType.TYPE_SCENE:
 			return _load_resource(str(value), type)
 		_:
 			return value
@@ -255,33 +255,33 @@ func _apply_default_values(row_data: Dictionary) -> void:
 	
 	for field_name in _field_types:
 		if not row_data.has(field_name) or row_data[field_name] == null:
-			var type: CSVFieldDefinition.FieldType = _field_types[field_name]
+			var type: GDSVFieldDefinition.FieldType = _field_types[field_name]
 			row_data[field_name] = _get_type_default(type)
 
 
 ## 获取类型默认值
-func _get_type_default(type: CSVFieldDefinition.FieldType) -> Variant:
+func _get_type_default(type: GDSVFieldDefinition.FieldType) -> Variant:
 	match type:
-		CSVFieldDefinition.FieldType.TYPE_INT:
+		GDSVFieldDefinition.FieldType.TYPE_INT:
 			return 0
-		CSVFieldDefinition.FieldType.TYPE_FLOAT:
+		GDSVFieldDefinition.FieldType.TYPE_FLOAT:
 			return 0.0
-		CSVFieldDefinition.FieldType.TYPE_BOOL:
+		GDSVFieldDefinition.FieldType.TYPE_BOOL:
 			return false
-		CSVFieldDefinition.FieldType.TYPE_STRING_NAME:
+		GDSVFieldDefinition.FieldType.TYPE_STRING_NAME:
 			return &""
-		CSVFieldDefinition.FieldType.TYPE_JSON:
+		GDSVFieldDefinition.FieldType.TYPE_JSON:
 			return null
-		CSVFieldDefinition.FieldType.TYPE_ARRAY:
+		GDSVFieldDefinition.FieldType.TYPE_ARRAY:
 			return []
-		CSVFieldDefinition.FieldType.TYPE_RESOURCE, CSVFieldDefinition.FieldType.TYPE_TEXTURE, CSVFieldDefinition.FieldType.TYPE_SCENE:
+		GDSVFieldDefinition.FieldType.TYPE_RESOURCE, GDSVFieldDefinition.FieldType.TYPE_TEXTURE, GDSVFieldDefinition.FieldType.TYPE_SCENE:
 			return null
 		_:
 			return ""
 
 
 ## 加载资源
-func _load_resource(path: String, type: CSVFieldDefinition.FieldType) -> Variant:
+func _load_resource(path: String, type: GDSVFieldDefinition.FieldType) -> Variant:
 	if path.is_empty():
 		return null
 	
@@ -298,7 +298,7 @@ func _load_resource(path: String, type: CSVFieldDefinition.FieldType) -> Variant
 
 
 ## 设置字段类型
-func set_field_type(field_name: StringName, type: CSVFieldDefinition.FieldType) -> void:
+func set_field_type(field_name: StringName, type: GDSVFieldDefinition.FieldType) -> void:
 	_field_types[field_name] = type
 
 
@@ -308,7 +308,7 @@ func set_default_value(field_name: StringName, default_value: Variant) -> void:
 
 
 ## 设置 Schema
-func set_schema(schema: CSVSchema) -> void:
+func set_schema(schema: GDSVSchema) -> void:
 	_schema = schema
 
 

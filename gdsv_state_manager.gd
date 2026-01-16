@@ -1,4 +1,4 @@
-class_name CSVStateManager
+class_name GDSVStateManager
 extends Node
 
 ## CSV 状态管理器，管理文件状态、UI状态和Schema状态
@@ -41,7 +41,7 @@ signal error_count_changed(count: int)
 
 #region 导出变量 Export Variables
 ## 数据模型实例
-@export var data_model: CSVDataModel
+@export var data_model: GDSVDataModel
 
 ## 自动保存间隔（秒），0表示禁用
 @export var auto_save_interval: float = 300.0
@@ -82,10 +82,12 @@ var _editing_cell: Vector2i = Vector2i(-1, -1)
 
 #region 生命周期方法 Lifecycle Methods
 func _init() -> void:
-	_setup_auto_save_timer()
+	pass
 
 
 func _ready() -> void:
+	_setup_auto_save_timer()
+	
 	if data_model:
 		data_model.data_changed.connect(_on_data_model_data_changed)
 		data_model.cell_changed.connect(_on_data_model_cell_changed)
@@ -94,13 +96,16 @@ func _ready() -> void:
 
 #region 初始化功能 Initialization Features
 func _setup_auto_save_timer() -> void:
+	if _auto_save_timer:
+		return
+	
 	_auto_save_timer = Timer.new()
 	_auto_save_timer.wait_time = auto_save_interval
 	_auto_save_timer.timeout.connect(_on_auto_save)
 	add_child(_auto_save_timer)
 
 
-func set_data_model(model: CSVDataModel) -> void:
+func set_data_model(model: GDSVDataModel) -> void:
 	if data_model:
 		if data_model.data_changed.is_connected(_on_data_model_data_changed):
 			data_model.data_changed.disconnect(_on_data_model_data_changed)
@@ -173,7 +178,7 @@ func set_file_path(path: String) -> void:
 ## 获取文件名
 func get_file_name() -> String:
 	if file_path.is_empty():
-		return "未命名.csv"
+		return "未命名.gdsv"
 	return file_path.get_file()
 
 
@@ -526,7 +531,15 @@ func is_auto_save_enabled() -> bool:
 
 ## 启动自动保存
 func _start_auto_save() -> void:
-	if is_auto_save_enabled() and not _auto_save_timer.is_stopped():
+	if not is_auto_save_enabled() or not _auto_save_timer:
+		return
+	
+	# 保险：有些路径可能在节点进树前触发（例如插件初始化阶段）
+	if not _auto_save_timer.is_inside_tree():
+		call_deferred("_start_auto_save")
+		return
+	
+	if _auto_save_timer.is_stopped():
 		_auto_save_timer.start()
 
 

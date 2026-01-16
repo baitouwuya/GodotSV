@@ -1,14 +1,14 @@
 @tool
-class_name GDSVImportPlugin
+class_name UnifiedGDSVImportPlugin
 extends EditorImportPlugin
 
-## GDSV 文件导入插件，将 GDSV 文件导入为 CSVResource 资源
+## GDSV 统一导入插件，支持 GDSV/CSV/TSV/PSV 等多种表格格式
 
 const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
 
 
 func _get_importer_name() -> String:
-	return "godotsv.gdsv_importer"
+	return "godotsv.importer"
 
 
 func _get_visible_name() -> String:
@@ -16,7 +16,7 @@ func _get_visible_name() -> String:
 
 
 func _get_recognized_extensions() -> PackedStringArray:
-	return PackedStringArray(["gdsv"])
+	return PackedStringArray(["gdsv", "csv", "tsv", "tab", "psv", "asc"])
 
 
 func _get_save_extension() -> String:
@@ -25,8 +25,8 @@ func _get_save_extension() -> String:
 
 func _get_resource_type() -> String:
 	# 返回基础类型以避免编辑器在加载导入产物前对"自定义脚本类名"做严格匹配，
-	# 否则在某些时序下会出现 "No loader found ... expected type: CSVResource"。
-	# 实际加载出的资源仍会是 csv_resource.gd 脚本实例（CSVResource）。
+	# 否则在某些时序下会出现 "No loader found ... expected type: GDSVResource"。
+	# 实际加载出的资源仍会是 csv_resource.gd 脚本实例（GDSVResource）。
 	return "Resource"
 
 
@@ -44,6 +44,15 @@ func _get_import_options(path: String, preset_index: int) -> Array[Dictionary]:
 		"hint_string": "",
 		"usage": PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT,
 		"type": TYPE_BOOL
+	})
+
+	options.append({
+		"name": "delimiter",
+		"default_value": ",",
+		"property_hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"usage": PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT,
+		"type": TYPE_STRING
 	})
 
 	options.append({
@@ -68,6 +77,10 @@ func _get_import_options(path: String, preset_index: int) -> Array[Dictionary]:
 
 
 func _get_option_visibility(path: String, option_name: StringName, options: Dictionary) -> bool:
+	# 对于 .gdsv 文件，隐藏 delimiter 选项（固定使用 tab）
+	var file_ext := path.get_extension().to_lower()
+	if file_ext == "gdsv" and option_name == "delimiter":
+		return false
 	return true
 
 
@@ -75,28 +88,45 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 	# 被动触发旧 *.translation 清理：仅在真正发生导入时执行，避免编辑器启动扫描期文件锁冲突。
 	_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
-	# 创建 CSVLoader 实例
-	var loader: CSVLoader = CSVLoader.new()
+	# 根据文件扩展名确定分隔符
+	var file_ext := source_file.get_extension().to_lower()
+	var delimiter: String
+	match file_ext:
+		"gdsv", "tsv", "tab", "asc":
+			delimiter = "\t"
+		"psv":
+			delimiter = "|"
+		"csv":
+			delimiter = ","
+		_:
+			delimiter = ","
+
+	# 对于非 .gdsv 文件，使用用户指定的分隔符覆盖默认值
+	if file_ext != "gdsv":
+		delimiter = str(options.get("delimiter", delimiter))
+
+	# 创建 GDSVLoader 实例
+	var loader: GDSVLoader = GDSVLoader.new()
 
 	# 应用导入选项
 	var has_header: bool = bool(options.get("has_header", true))
 
 	loader.load_file(source_file)
 	loader.with_header(has_header)
-	loader.with_delimiter("\t")  # GDSV 固定使用 Tab 作为分隔符
+	loader.with_delimiter(delimiter)
 
 	# 如果指定了 Schema，应用 Schema
 	var schema_path := options.get("schema_path", "")
 	if not schema_path.is_empty():
 		if ResourceLoader.exists(schema_path):
-			var schema: CSVSchema = load(schema_path)
+			var schema: GDSVSchema = load(schema_path)
 			if schema != null:
 				loader.with_schema(schema)
 		else:
 			push_warning("GDSV 导入警告: Schema 文件不存在: %s" % schema_path)
 
 	# 解析 CSV 数据
-	var csv_resource: CSVResource = loader.parse_all()
+	var csv_resource: GDSVResource = loader.parse_all()
 	csv_resource.source_csv_path = source_file
 
 	# 检查是否有错误
