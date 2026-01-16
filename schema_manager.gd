@@ -99,7 +99,7 @@ func auto_detect_schema(csv_file_path: String) -> String:
 	if csv_file_path.is_empty():
 		return ""
 	
-	# 获取 CSV 文件所在目录
+	# 获取 GDSV 文件所在目录
 	var base_dir := csv_file_path.get_base_dir()
 	var file_name := csv_file_path.get_file().get_basename()
 	
@@ -356,7 +356,7 @@ func should_use_external_schema(csv_file_path: String) -> bool:
 	if _current_schema_path.is_empty():
 		return false
 	
-	# 检查 CSV 文件是否有内联类型标注
+	# 检查 GDSV 文件是否有内联类型标注
 	var has_inline_annotations := _has_inline_type_annotations(csv_file_path)
 	
 	# 外部 Schema 优先

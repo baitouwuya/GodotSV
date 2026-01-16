@@ -1,8 +1,8 @@
 class_name GDSVEditorPanel
 extends Control
 
-## CSV 编辑器面板，包含工具栏、表格视图和状态栏
-## 提供完整的 CSV 文件编辑功能
+## GDSV 编辑器面板，包含工具栏、表格视图和状态栏
+## 提供完整的 GDSV 文件编辑功能
 
 #region 信号 Signals
 signal file_loaded(file_path: String)
@@ -651,7 +651,7 @@ func load_file(file_path: String) -> bool:
 	tab_processor.auto_trim_whitespace = _data_processor.auto_trim_whitespace
 	tab_processor.default_delimiter = _data_processor.default_delimiter
 
-	var success := tab_processor.load_csv_file(file_path)
+	var success := tab_processor.load_gdsv_file(file_path)
 	if not success:
 		push_error("加载文件失败: " + tab_processor.last_error)
 		return false
@@ -714,7 +714,7 @@ func save_file(file_path: String) -> bool:
 	if not processor:
 		processor = _data_processor
 
-	var success := processor.save_csv_file(file_path)
+	var success := processor.save_gdsv_file(file_path)
 	if success:
 		# 保存成功后：清除“该 tab”的修改状态。
 		if model and model.has_method("clear_modified"):

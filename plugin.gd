@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## GodotSV 插件入口，负责注册 CSV 导入插件和编辑器插件
+## GodotSV 插件入口，负责注册 GDSV 导入插件和编辑器插件
 
 const CSV_IMPORTER_NAME := "godotsv.importer"
 const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
@@ -35,9 +35,9 @@ func _enter_tree() -> void:
 	add_child(_editor_plugin)
 	_editor_plugin.owner = self
 
-	# 清理旧的 Translation CSV 导入产物（例如 sample_people.age.translation），避免污染 CSV 目录
+	# 清理旧的 Translation 导入产物（例如 sample_people.age.translation），避免污染数据目录
 	# 注意：旧的 *.translation 清理改为“被动触发”。
-	# 仅在读取/导入 CSV 时按需触发，避免与编辑器资源扫描/导入线程抢占文件句柄导致锁冲突。
+	# 仅在读取/导入时按需触发，避免与编辑器资源扫描/导入线程抢占文件句柄导致锁冲突。
 	# 触发入口见：request_legacy_translation_cleanup()
 
 
@@ -92,7 +92,7 @@ func _schedule_legacy_translation_cleanup() -> void:
 	_cleanup_legacy_translation_files()
 
 func _cleanup_legacy_translation_files() -> void:
-	# 仅清理“由 CSV 翻译导入器误导入产生”的 *.translation 文件：
+	# 仅清理“由 翻译导入器误导入产生”的 *.translation 文件：
 	# 文件名形如 <csv_base>.<locale>.translation，并且对应的 <csv_base>.csv 当前使用我们的 importer。
 	#
 	# 重要：不要递归扫描整个 res://。
@@ -105,8 +105,8 @@ func _cleanup_legacy_translation_files() -> void:
 	_cleanup_legacy_translation_files_in_dir(LEGACY_TRANSLATION_DIR)
 
 	# 额外清理：删除“文件名非法（含类型标注符号）”的 *.translation 产物。
-	# 这些文件通常来自 Godot 内置 CSV Translation importer 把 CSV 表头拼进文件名。
-	# 只扫描“使用我们 importer 的 CSV 所在目录”，避免全项目扫描引发锁冲突。
+	# 这些文件通常来自 Godot 内置 Translation importer 把表头拼进文件名。
+	# 只扫描“使用我们 importer 的 数据文件所在目录”，避免全项目扫描引发锁冲突。
 	_cleanup_invalid_translation_files_for_godotsv_csvs()
 
 
@@ -236,8 +236,8 @@ func _try_move_legacy_translation_file(translation_path: String) -> void:
 		return
 
 	var csv_base := stem.substr(0, dot)
-	var csv_path := csv_base + ".csv"
-	var csv_import_path := csv_path + ".import"
+	var gdsv_path := csv_base + ".csv"
+	var csv_import_path := gdsv_path + ".import"
 	if not FileAccess.file_exists(csv_import_path):
 		return
 
@@ -245,7 +245,7 @@ func _try_move_legacy_translation_file(translation_path: String) -> void:
 	if import_text.find('importer="%s"' % CSV_IMPORTER_NAME) < 0:
 		return
 
-	# 移动到隐藏目录，避免在 CSV 文件目录中出现
+	# 移动到隐藏目录，避免在数据文件目录中出现
 	var target_dir_abs := ProjectSettings.globalize_path(LEGACY_TRANSLATION_DIR)
 	DirAccess.make_dir_recursive_absolute(target_dir_abs)
 
@@ -323,7 +323,7 @@ func _make_safe_file_stem(stem: String) -> String:
 
 func _load_plugin_script(file_name: String) -> Script:
 	# 使用插件自身脚本路径拼接，避免用户把插件放到不同目录时路径失效。
-	# 约定：本文件与目标脚本（如 csv_resource.gd）位于同一目录。
+	# 约定：本文件与目标脚本（如 gdsv_resource.gd）位于同一目录。
 	if file_name.is_empty():
 		return null
 

@@ -4,9 +4,9 @@ extends RefCounted
 
 const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
 
-## CSV 文件加载器，提供 CSV 文件的读取、解析和转换功能
+## GDSV 文件加载器，提供 GDSV 文件的读取、解析和转换功能
 
-## CSV 文件路径
+## GDSV 文件路径
 var _file_path: String = ""
 
 ## 是否包含表头
@@ -24,7 +24,7 @@ var _default_values: Dictionary = {}
 ## 必需字段列表
 var _required_fields: Array[StringName] = []
 
-## CSV Schema 资源
+## GDSV Schema 资源
 var _schema: GDSVSchema = null
 
 ## 错误信息列表
@@ -60,7 +60,7 @@ func _init() -> void:
 	_current_row = 0
 
 
-## 加载 CSV 文件
+## 加载 GDSV 文件
 func load_file(file_path: String) -> GDSVLoader:
 	_file_path = file_path
 	
@@ -119,14 +119,14 @@ func parse_all() -> GDSVResource:
 		# 被动触发旧 *.translation 清理：仅在真正发生读取时执行，避免编辑器启动扫描期文件锁冲突。
 		_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
-	var csv_resource: GDSVResource = GDSVResource.new()
-	csv_resource.has_header = _has_header
-	csv_resource.delimiter = _delimiter
+	var gdsv_resource: GDSVResource = GDSVResource.new()
+	gdsv_resource.has_header = _has_header
+	gdsv_resource.delimiter = _delimiter
 	
 	# 检查文件路径是否有效
 	if _file_path.is_empty():
-		csv_resource.add_error("未设置文件路径，请先调用 load_file()")
-		return csv_resource
+		gdsv_resource.add_error("未设置文件路径，请先调用 load_file()")
+		return gdsv_resource
 	
 	# 检查缓存
 	if _cache.has(_file_path):
@@ -136,10 +136,10 @@ func parse_all() -> GDSVResource:
 	# 读取文件内容
 	var file_content := _read_file_content()
 	if file_content.is_empty():
-		csv_resource.add_error("文件内容为空或读取失败: %s" % _get_display_path(_file_path))
-		return csv_resource
+		gdsv_resource.add_error("文件内容为空或读取失败: %s" % _get_display_path(_file_path))
+		return gdsv_resource
 	
-	# 解析 CSV 数据
+	# 解析 GDSV 数据
 	var lines := file_content.split("\n")
 	
 	# 解析表头
@@ -157,24 +157,24 @@ func parse_all() -> GDSVResource:
 			# 对于 .csv 文件，提示迁移到 .gdsv
 			if _file_path.get_extension().to_lower() == "csv":
 				var migration_msg := "Detected GDSV syntax in .csv file. Consider renaming to .gdsv for better compatibility and to avoid conflicts with Godot's built-in CSV importer."
-				csv_resource.add_warning(migration_msg)
+				gdsv_resource.add_warning(migration_msg)
 				_warnings.append(migration_msg)
 
 			var column_defs := gdsv_parser.parse_header(header_row)
 			if not gdsv_parser.has_error():
 				_apply_gdsv_column_definitions(column_defs)
 			else:
-				csv_resource.add_error("GDSV syntax error: " + gdsv_parser.get_last_error())
+				gdsv_resource.add_error("GDSV syntax error: " + gdsv_parser.get_last_error())
 				_errors.append("GDSV syntax error: " + gdsv_parser.get_last_error())
 
 		# 应用 Schema 验证
 		if _schema != null:
 			var schema_errors := _schema.validate_header(header_row)
 			for error in schema_errors:
-				csv_resource.add_error(error)
+				gdsv_resource.add_error(error)
 				_errors.append(error)
 	
-	csv_resource.headers = header_row
+	gdsv_resource.headers = header_row
 	
 	# 建立字段名到列索引的映射
 	var header_indices := _build_header_indices(header_row)
@@ -189,7 +189,7 @@ func parse_all() -> GDSVResource:
 
 		_current_row = i + 2  # +2 因为跳过表头且从1开始计数
 		var row_data := _parse_csv_line(line)
-		csv_resource.add_raw_row(row_data)
+		gdsv_resource.add_raw_row(row_data)
 
 		# 转换为字典格式，返回 [dict, extended_header, extended_indices]
 		var row_result := _convert_row_to_dict(row_data, header_indices, _current_row)
@@ -203,7 +203,7 @@ func parse_all() -> GDSVResource:
 				var col_index: int = extended_indices[col_name] as int
 				header_row.append(col_name)
 				header_indices[col_name] = col_index
-				csv_resource.headers = header_row  # 同步更新到资源对象的表头
+				gdsv_resource.headers = header_row  # 同步更新到资源对象的表头
 
 		if dict_row.is_empty():
 			_failed_rows += 1
@@ -220,32 +220,32 @@ func parse_all() -> GDSVResource:
 			var validation_errors := _schema.validate_row(dict_row, _current_row)
 			if not validation_errors.is_empty():
 				for error in validation_errors:
-					csv_resource.add_error(error)
+					gdsv_resource.add_error(error)
 					_errors.append(error)
 				_failed_rows += 1
 				continue
 
-		csv_resource.add_row(dict_row)
+		gdsv_resource.add_row(dict_row)
 	
 	# 更新统计信息
-	csv_resource.total_rows = _total_rows
-	csv_resource.successful_rows = _successful_rows
-	csv_resource.failed_rows = _failed_rows
+	gdsv_resource.total_rows = _total_rows
+	gdsv_resource.successful_rows = _successful_rows
+	gdsv_resource.failed_rows = _failed_rows
 	
 	# 添加错误和警告到资源
 	for error in _errors:
-		csv_resource.add_error(error)
+		gdsv_resource.add_error(error)
 	
 	for warning in _warnings:
-		csv_resource.add_warning(warning)
+		gdsv_resource.add_warning(warning)
 	
 	# 缓存结果
-	_add_to_cache(_file_path, csv_resource)
+	_add_to_cache(_file_path, gdsv_resource)
 	
 	# 输出解析统计
-	_log_statistics(csv_resource)
+	_log_statistics(gdsv_resource)
 	
-	return csv_resource
+	return gdsv_resource
 
 
 ## 创建流式读取器
@@ -493,7 +493,7 @@ func _load_resource(path: String, type: GDSVFieldDefinition.FieldType) -> Varian
 		_warnings.append("资源加载失败: %s" % resolved_path)
 		return null
 
-	# CSV 里允许只存 uid://；加载成功后，使用真实路径便于后续调试/序列化
+	# GDSV 里允许只存 uid://；加载成功后，使用真实路径便于后续调试/序列化
 	if path.begins_with("uid://") and resource is Resource:
 		var loaded_uid_id: int = int((resource as Resource).resource_uid)
 		if loaded_uid_id != 0:

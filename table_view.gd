@@ -147,7 +147,7 @@ var _smart_editor: Control
 var _current_editor_type: String = "LineEdit"
 var _spinbox_is_int: bool = false
 
-## 是否启用双击进入单元格编辑（暂时关闭：统一使用 CSVEditorPanel 的输入区编辑）
+## 是否启用双击进入单元格编辑（暂时关闭：统一使用 GDSVEditorPanel 的输入区编辑）
 @export var enable_double_click_editing: bool = false
 
 ## 选区管理

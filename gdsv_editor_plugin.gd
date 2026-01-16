@@ -2,18 +2,31 @@
 class_name GDSVEditorPlugin
 extends EditorPlugin
 
-## CSV 编辑器插件入口，负责管理 CSV 文件的编辑和面板显示
+## GDSV 编辑器插件入口，负责管理 GDSV 文件的编辑和面板显示
 
 #region 常量 Constants
 ## 面板当前使用纯代码构建（GDSVEditorPanel.new()），不依赖.tscn文件
 const CSV_EDITOR_PANEL_PATH = ""
 const CSV_FILE_EXTENSION = ".csv"
 const GDSV_FILE_EXTENSION = ".gdsv"
+
+# 作为“源表格文件”允许被编辑器打开的扩展名集合。
+# 注意：这里处理的是资源的 source_path（导入前的文件），
+# 导入产物仍是 .res。
+const _EDITABLE_SOURCE_EXTS := [
+	"gdsv",
+	"csv",
+	"tsv",
+	"tab",
+	"psv",
+	"asc",
+]
+
 const DEFAULT_BOTTOM_PANEL_HEIGHT: float = 320.0
 #endregion
 
 #region 公共变量 Public Variables
-## CSV 编辑器面板实例
+## GDSV 编辑器面板实例
 var editor_panel: GDSVEditorPanel
 
 ## 当前编辑的文件路径
@@ -72,11 +85,13 @@ func _cleanup_bottom_panel() -> void:
 ## 检查是否处理该文件
 func _handles(object: Object) -> bool:
 	if object is GDSVResource:
-		return true
+		return _is_editable_source_path((object as GDSVResource).source_gdsv_path)
+
 	if object is Resource:
 		var path: String = (object as Resource).resource_path
-		# 只处理 .gdsv 文件，不处理 .csv 文件
-		return path.ends_with(GDSV_FILE_EXTENSION)
+		# 直接双击源文件（未导入为 .res）时，resource_path 就是源文件路径。
+		return _is_editable_source_path(path)
+
 	return false
 
 
@@ -85,52 +100,39 @@ func _edit(object: Object) -> void:
 	if not object or not editor_panel:
 		return
 
-	var csv_path := ""
+	var gdsv_path := ""
 	if object is GDSVResource:
-		csv_path = (object as GDSVResource).source_csv_path
-		if csv_path.is_empty() and object is Resource:
-			# 兼容旧版本导入产物：GDSVResource 里可能还没保存 source_csv_path。
+		gdsv_path = (object as GDSVResource).source_gdsv_path
+		if gdsv_path.is_empty() and object is Resource:
+			# 兼容旧版本导入产物：GDSVResource 里可能还没保存 source_gdsv_path。
 			# 同时支持直接编辑 .gdsv。
 			var rp := (object as Resource).resource_path
-			if rp.ends_with(GDSV_FILE_EXTENSION):
-				csv_path = rp
+			if _is_editable_source_path(rp):
+				gdsv_path = rp
 			else:
-				csv_path = _guess_source_csv_from_imported_resource_path(rp)
+				gdsv_path = _guess_source_gdsv_from_imported_resource_path(rp)
 	elif object is Resource:
 		var resource_path := (object as Resource).resource_path
-		# 如果是 .csv 文件，显示提示对话框
-		if resource_path.ends_with(CSV_FILE_EXTENSION):
-			_show_csv_import_dialog()
-			return
-		if resource_path.ends_with(GDSV_FILE_EXTENSION):
-			csv_path = resource_path
+		if _is_editable_source_path(resource_path):
+			gdsv_path = resource_path
 
-	if csv_path.is_empty():
+	if gdsv_path.is_empty():
 		return
-	current_file_path = csv_path
+	current_file_path = gdsv_path
 
 	# 显示面板并加载文件
 	_make_visible(true)
-	editor_panel.load_file(csv_path)
+	editor_panel.load_file(gdsv_path)
 
 
-## 显示 CSV 导入提示对话框
-func _show_csv_import_dialog() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.title = "GDSV 文件编辑"
-	dialog.dialog_text = "CSV files cannot be directly edited. Please use 'Import CSV' from the menu to convert to GDSV format first."
-
-	# 添加到编辑器
-	EditorInterface.get_base_control().add_child(dialog)
-	dialog.popup_centered()
-
-	# 自动关闭对话框
-	dialog.confirmed.connect(func(): dialog.queue_free())
-	dialog.canceled.connect(func(): dialog.queue_free())
-	dialog.close_requested.connect(func(): dialog.queue_free())
+func _is_editable_source_path(path: String) -> bool:
+	if path.is_empty():
+		return false
+	var ext := path.get_extension().to_lower()
+	return ext in _EDITABLE_SOURCE_EXTS
 
 
-func _guess_source_csv_from_imported_resource_path(imported_resource_path: String) -> String:
+func _guess_source_gdsv_from_imported_resource_path(imported_resource_path: String) -> String:
 	if imported_resource_path.is_empty():
 		return ""
 	var file_name := imported_resource_path.get_file()

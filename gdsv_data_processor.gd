@@ -1,7 +1,7 @@
 class_name GDSVDataProcessor
 extends Node
 
-## CSV 数据处理器，封装所有 C++ 模块的 GDScript 接口
+## GDSV 数据处理器，封装所有 C++ 模块的 GDScript 接口
 ## 提供统一的错误处理和类型安全的 API 设计
 
 #region 信号 Signals
@@ -97,8 +97,8 @@ func reset() -> void:
 #endregion
 
 #region 文件加载功能 File Loading Features
-## 加载 CSV 文件
-func load_csv_file(file_path: String) -> bool:
+## 加载 GDSV 文件
+func load_gdsv_file(file_path: String) -> bool:
 	_reset_error_state()
 	
 	if not FileAccess.file_exists(file_path):
@@ -124,11 +124,11 @@ func load_csv_file(file_path: String) -> bool:
 	var content := file.get_as_text()
 	file.close()
 	
-	return load_csv_content(content, file_path)
+	return load_gdsv_content(content, file_path)
 
 
 ## 加载 CSV 内容字符串
-func load_csv_content(content: String, file_path: String = "") -> bool:
+func load_gdsv_content(content: String, file_path: String = "") -> bool:
 	_reset_error_state()
 	
 	if content.is_empty():
@@ -195,8 +195,8 @@ func load_csv_content(content: String, file_path: String = "") -> bool:
 #endregion
 
 #region 文件保存功能 File Saving Features
-## 保存 CSV 文件
-func save_csv_file(file_path: String) -> bool:
+## 保存 GDSV 文件
+func save_gdsv_file(file_path: String) -> bool:
 	_reset_error_state()
 
 	# 重要：按调用方传入的路径原样保存。
@@ -206,6 +206,10 @@ func save_csv_file(file_path: String) -> bool:
 	# 因此仅在“完全没有扩展名”时才补默认扩展名。
 	if file_path.get_extension().is_empty():
 		file_path = file_path + original_file_extension
+
+	# 保存时使用目标路径的后缀推断分隔符（与加载逻辑一致），避免：
+	# - 打开的是 .gdsv/.tsv（tab 分隔），保存时却写成逗号分隔，导致看起来“没正确写入”
+	default_delimiter = _infer_default_delimiter_for_file(file_path)
 
 	var content := get_csv_string()
 	if content.is_empty():
@@ -285,9 +289,9 @@ func import_tsv_file(file_path: String) -> bool:
 	file.close()
 	
 	# 将TSV转换为CSV格式
-	var csv_content := _tsv_to_csv(content)
+	var gdsv_content := _tsv_to_csv(content)
 	
-	return load_csv_content(csv_content, file_path)
+	return load_gdsv_content(gdsv_content, file_path)
 
 
 ## TSV 转换为 CSV
@@ -1040,7 +1044,7 @@ func _reset_error_state() -> void:
 func _set_error(error_message: String) -> void:
 	last_error = error_message
 	has_error = true
-	push_error("CSVDataProcessor: " + error_message)
+	push_error("GDSVDataProcessor: " + error_message)
 
 
 ## 去除所有单元格的首尾空格

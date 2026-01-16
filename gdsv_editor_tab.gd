@@ -1,7 +1,7 @@
 class_name GDSVEditorTab
 extends Control
 
-## CSV 编辑器标签页辅助类，为标签页控件提供文件路径访问功能
+## GDSV 编辑器标签页辅助类，为标签页控件提供文件路径访问功能
 
 ## 文件路径（用于显示/回退）
 var _file_path: String = ""

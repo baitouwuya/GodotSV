@@ -1,7 +1,7 @@
 class_name GDSVFieldDefinition
 extends Resource
 
-## CSV 字段定义，用于描述 CSV 文件中某个字段的类型、默认值和验证规则
+## GDSV 字段定义，用于描述 GDSV 文件中某个字段的类型、默认值和验证规则
 
 enum FieldType {
 	TYPE_STRING,           ## 字符串类型

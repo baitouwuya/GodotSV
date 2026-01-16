@@ -1,7 +1,7 @@
 class_name GDSVStateManager
 extends Node
 
-## CSV 状态管理器，管理文件状态、UI状态和Schema状态
+## GDSV 状态管理器，管理文件状态、UI状态和Schema状态
 ## 提供统一的状态查询和变更通知机制
 
 #region 信号 Signals
@@ -553,7 +553,7 @@ func _stop_auto_save() -> void:
 func _on_auto_save() -> void:
 	if file_modified and not file_path.is_empty():
 		if data_model and data_model.data_processor:
-			var success := data_model.data_processor.save_csv_file(file_path)
+			var success := data_model.data_processor.save_gdsv_file(file_path)
 			if success:
 				mark_file_saved()
 #endregion

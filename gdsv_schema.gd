@@ -1,7 +1,7 @@
 class_name GDSVSchema
 extends Resource
 
-## CSV 数据模式定义，用于定义 CSV 文件的整体结构、字段定义和验证规则
+## GDSV 数据模式定义，用于定义 GDSV 文件的整体结构、字段定义和验证规则
 
 ## 字段定义字典（字段名 -> GDSVFieldDefinition）
 @export var field_definitions: Dictionary = {}

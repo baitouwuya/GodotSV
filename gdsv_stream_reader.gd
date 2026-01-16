@@ -1,7 +1,7 @@
 class_name GDSVStreamReader
 extends RefCounted
 
-## CSV 流式读取器，用于逐行读取大型 CSV 文件，减少内存占用
+## GDSV 流式读取器，用于逐行读取大型 GDSV 文件，减少内存占用
 
 ## 文件对象
 var _file: FileAccess = null
@@ -30,7 +30,7 @@ var _current_line_index: int = 0
 ## 是否已读取表头
 var _header_read: bool = false
 
-## CSV Schema
+## GDSV Schema
 var _schema: GDSVSchema = null
 
 ## 错误信息列表

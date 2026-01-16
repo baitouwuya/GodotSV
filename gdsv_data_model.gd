@@ -1,7 +1,7 @@
 class_name GDSVDataModel
 extends Node
 
-## CSV 数据模型，封装表格数据和数据操作逻辑
+## GDSV 数据模型，封装表格数据和数据操作逻辑
 ## 提供数据观察、批量操作和撤销/重做支持
 
 ## 搜索匹配模式枚举

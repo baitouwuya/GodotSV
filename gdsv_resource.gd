@@ -2,7 +2,7 @@
 class_name GDSVResource
 extends Resource
 
-## CSV 资源，用于存储解析后的 CSV 数据
+## GDSV 资源，用于存储解析后的 GDSV 数据
 
 ## 表头行
 @export var headers: PackedStringArray = []
@@ -30,8 +30,8 @@ extends Resource
 ## 分隔符
 @export var delimiter: String = ","
 
-## 源 CSV 文件路径（编辑器用：用于在双击 CSV 时回到源文件编辑）
-@export var source_csv_path: String = ""
+## 源 GDSV 文件路径（编辑器用：用于在双击资源时回到源文件编辑）
+@export var source_gdsv_path: String = ""
 
 
 ## 添加一行数据

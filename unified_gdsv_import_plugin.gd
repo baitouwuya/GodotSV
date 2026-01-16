@@ -26,7 +26,7 @@ func _get_save_extension() -> String:
 func _get_resource_type() -> String:
 	# 返回基础类型以避免编辑器在加载导入产物前对"自定义脚本类名"做严格匹配，
 	# 否则在某些时序下会出现 "No loader found ... expected type: GDSVResource"。
-	# 实际加载出的资源仍会是 csv_resource.gd 脚本实例（GDSVResource）。
+	# 实际加载出的资源仍会是 gdsv_resource.gd 脚本实例（GDSVResource）。
 	return "Resource"
 
 
@@ -125,9 +125,9 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 		else:
 			push_warning("GDSV 导入警告: Schema 文件不存在: %s" % schema_path)
 
-	# 解析 CSV 数据
+	# 解析 GDSV 数据
 	var csv_resource: GDSVResource = loader.parse_all()
-	csv_resource.source_csv_path = source_file
+	csv_resource.source_gdsv_path = source_file
 
 	# 检查是否有错误
 	if csv_resource.has_errors():
