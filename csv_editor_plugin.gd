@@ -8,6 +8,7 @@ extends EditorPlugin
 ## 面板当前使用纯代码构建（CSVEditorPanel.new()），不依赖.tscn文件
 const CSV_EDITOR_PANEL_PATH = ""
 const CSV_FILE_EXTENSION = ".csv"
+const GDSV_FILE_EXTENSION = ".gdsv"
 const DEFAULT_BOTTOM_PANEL_HEIGHT: float = 320.0
 #endregion
 
@@ -74,7 +75,7 @@ func _handles(object: Object) -> bool:
 		return true
 	if object is Resource:
 		var path: String = (object as Resource).resource_path
-		return path.ends_with(CSV_FILE_EXTENSION)
+		return path.ends_with(CSV_FILE_EXTENSION) or path.ends_with(GDSV_FILE_EXTENSION)
 	return false
 
 
@@ -87,10 +88,10 @@ func _edit(object: Object) -> void:
 	if object is CSVResource:
 		csv_path = (object as CSVResource).source_csv_path
 		if csv_path.is_empty() and object is Resource:
-			# 兼容旧版本导入产物：CSVResource 里可能还没保存 source_csv_path，
-			# 但 resource_path 通常就是源 .csv。
+			# 兼容旧版本导入产物：CSVResource 里可能还没保存 source_csv_path。
+			# 同时支持直接编辑 .csv / .gdsv。
 			var rp := (object as Resource).resource_path
-			if rp.ends_with(CSV_FILE_EXTENSION):
+			if rp.ends_with(CSV_FILE_EXTENSION) or rp.ends_with(GDSV_FILE_EXTENSION):
 				csv_path = rp
 			else:
 				csv_path = _guess_source_csv_from_imported_resource_path(rp)

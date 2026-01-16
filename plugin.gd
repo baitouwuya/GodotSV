@@ -9,6 +9,7 @@ const INVALID_TRANSLATION_NAME_CHARS := [":", "[", "]", "(", ")"]
 
 var _import_plugin: CSVImportPlugin = null
 var _editor_plugin: CSVEditorPlugin = null
+var _gdsv_import_plugin: EditorImportPlugin = null
 var _legacy_cleanup_attempts: int = 0
 
 
@@ -27,6 +28,10 @@ func _enter_tree() -> void:
 	# 创建并注册导入插件
 	_import_plugin = CSVImportPlugin.new()
 	add_import_plugin(_import_plugin)
+
+	# 注册 GDSV 导入插件
+	_gdsv_import_plugin = preload("gdsv_import_plugin.gd").new()
+	add_import_plugin(_gdsv_import_plugin)
 
 	# 创建并托管编辑器插件
 	# 注意：不要手动调用另一个 EditorPlugin 的 _enter_tree/_exit_tree，
@@ -48,7 +53,12 @@ func _exit_tree() -> void:
 		remove_import_plugin(_import_plugin)
 		_import_plugin.queue_free()
 		_import_plugin = null
-	
+
+	# 移除 GDSV 导入插件
+	if _gdsv_import_plugin != null:
+		remove_import_plugin(_gdsv_import_plugin)
+		_gdsv_import_plugin = null
+
 	# 清理编辑器插件
 	if _editor_plugin != null:
 		_editor_plugin.queue_free()

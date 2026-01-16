@@ -82,12 +82,12 @@ func _initialize_undo_redo() -> void:
 
 
 func set_data_processor(processor: CSVDataProcessor) -> void:
-	if data_processor:
+	if data_processor and data_processor.data_changed.is_connected(_on_data_processor_data_changed):
 		data_processor.data_changed.disconnect(_on_data_processor_data_changed)
 	
 	data_processor = processor
 	
-	if data_processor:
+	if data_processor and not data_processor.data_changed.is_connected(_on_data_processor_data_changed):
 		data_processor.data_changed.connect(_on_data_processor_data_changed)
 #endregion
 
@@ -882,5 +882,33 @@ func _on_data_processor_data_changed(change_type: String, details: Dictionary) -
 	match change_type:
 		"load", "import":
 			_ensure_type_definitions_size()
+			_apply_type_definitions_from_header()
 	data_changed.emit(change_type, details)
+
+
+func _apply_type_definitions_from_header() -> void:
+	if not data_processor:
+		return
+
+	var original_header := get_original_header()
+	if original_header.is_empty():
+		return
+
+	var defs: Array = data_processor.parse_type_annotations(original_header)
+	if defs.is_empty():
+		return
+
+	# 与当前列数对齐，避免极端情况下越界
+	var col_count := get_column_count()
+	if col_count <= 0:
+		return
+
+	if defs.size() > col_count:
+		defs.resize(col_count)
+	elif defs.size() < col_count:
+		for i in range(defs.size(), col_count):
+			var name := "Column_" + str(i + 1)
+			defs.append({"name": name, "type": "string"})
+
+	set_type_definitions(defs)
 #endregion

@@ -102,6 +102,9 @@ func load_csv_file(file_path: String) -> bool:
 		_set_error(ERROR_FILE_NOT_FOUND)
 		file_loaded.emit(false, last_error)
 		return false
+
+	# 基于后缀自动推断分隔符（用于 .gdsv/.tsv/.tab 等）
+	default_delimiter = _infer_default_delimiter_for_file(file_path)
 	
 	var file := FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
@@ -123,8 +126,27 @@ func load_csv_content(content: String, file_path: String = "") -> bool:
 		_set_error(ERROR_INVALID_FORMAT)
 		file_loaded.emit(false, last_error)
 		return false
+
+	# 兼容：去除 UTF-8 BOM
+	if content.length() >= 1 and content.unicode_at(0) == 0xFEFF:
+		content = content.substr(1)
+
+	# 兼容：当文件包含表头时，允许在表头前出现注释/空行
+	# 注意：CSVParser 会按“行索引 i==0”来判断表头，因此这里要先把前置注释/空行移除。
+	var normalized_content := content
+	var lines := normalized_content.split("\n", false)
+	if not lines.is_empty():
+		var start_idx := 0
+		while start_idx < lines.size():
+			var line := lines[start_idx].strip_edges()
+			if line.is_empty() or line.begins_with("#"):
+				start_idx += 1
+				continue
+			break
+		if start_idx > 0:
+			normalized_content = "\n".join(lines.slice(start_idx))
 	
-	var csv_data: Array = _csv_parser.parse_from_string(content, true, default_delimiter)
+	var csv_data: Array = _csv_parser.parse_from_string(normalized_content, true, default_delimiter)
 	
 	if _csv_parser.has_error():
 		_set_error(_csv_parser.get_last_error())
@@ -627,6 +649,11 @@ func rename_column(column_index: int, new_name: String) -> bool:
 ## 解析类型标注
 func parse_type_annotations(header_row: PackedStringArray) -> Array:
 	_reset_error_state()
+
+	# 优先解析 GDSV 列定义（<name>[:<type>][=<default>])
+	var gdsv_parser := GDSVColumnParser.new()
+	if gdsv_parser.has_gdsv_syntax(header_row):
+		return parse_gdsv_definitions(header_row)
 	
 	# 使用C++解析器解析表头，返回清理后的字段名
 	var cleaned_names: PackedStringArray = _type_annotation_parser.parse_header(header_row)
@@ -645,6 +672,36 @@ func parse_type_annotations(header_row: PackedStringArray) -> Array:
 		}
 		results.append(result)
 	
+	return results
+
+
+## 解析 GDSV 列定义（用于编辑器字段面板）
+func parse_gdsv_definitions(header_row: PackedStringArray) -> Array:
+	_reset_error_state()
+
+	var gdsv_parser := GDSVColumnParser.new()
+	var defs: Array = gdsv_parser.parse_header(header_row)
+	if gdsv_parser.has_error():
+		_set_error("GDSV syntax error: " + gdsv_parser.get_last_error())
+		return []
+
+	var results: Array = []
+	for def in defs:
+		var name := str(def.get("name", "")).strip_edges()
+		if name.is_empty():
+			continue
+
+		var type_str := str(def.get("type", "")).strip_edges().to_lower()
+		if type_str.is_empty():
+			type_str = "string"
+
+		var result: Dictionary = {
+			"name": name,
+			"type": type_str,
+			"default": def.get("default_value", "")
+		}
+		results.append(result)
+
 	return results
 
 
@@ -983,16 +1040,20 @@ func _trim_all_cells() -> void:
 ## 将行数据转换为 CSV 行字符串
 func _join_csv_row(row_data: PackedStringArray) -> String:
 	var escaped_cells := PackedStringArray()
-	
+	var delimiter := default_delimiter
+	if delimiter.is_empty():
+		delimiter = ","
+
 	for cell in row_data:
 		var cell_str := str(cell)
-		
-		if cell_str.contains(",") or cell_str.contains("\n") or cell_str.contains("\""):
+
+		# 需要加引号的情况：包含分隔符 / 换行 / 双引号
+		if cell_str.contains(delimiter) or cell_str.contains("\n") or cell_str.contains("\""):
 			cell_str = "\"" + cell_str.replace("\"", "\"\"") + "\""
-		
+
 		escaped_cells.append(cell_str)
-	
-	return ",".join(escaped_cells)
+
+	return delimiter.join(escaped_cells)
 
 
 ## 检查索引是否有效
@@ -1006,4 +1067,16 @@ func clear_data() -> void:
 	_original_header.clear()
 	_cleaned_header.clear()
 	data_changed.emit("clear", {})
+
+
+## 基于后缀推断默认分隔符（编辑器内打开文件用）
+func _infer_default_delimiter_for_file(file_path: String) -> String:
+	var ext := file_path.get_extension().to_lower()
+	match ext:
+		"gdsv", "tsv", "tab", "asc":
+			return "\t"
+		"psv":
+			return "|"
+		_:
+			return ","
 #endregion

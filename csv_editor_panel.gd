@@ -210,9 +210,17 @@ func _build_ui() -> void:
 	_tab_container = TabContainer.new()
 	_tab_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tab_container.tab_changed.connect(_on_tab_changed)
+	_tab_container.tabs_visible = true
+	_tab_container.tabs_rearrange_group = 1
 	var tab_bar := _tab_container.get_tab_bar()
 	if tab_bar:
-		tab_bar.tab_close_pressed.connect(_on_tab_close_pressed)
+		# 兼容不同 Godot 版本：优先用方法设置关闭按钮策略
+		if tab_bar.has_method("set_tab_close_display_policy"):
+			tab_bar.set_tab_close_display_policy(TabBar.CLOSE_BUTTON_SHOW_ACTIVE_ONLY)
+		else:
+			tab_bar.tab_close_display_policy = TabBar.CLOSE_BUTTON_SHOW_ACTIVE_ONLY
+		if not tab_bar.tab_close_pressed.is_connected(_on_tab_close_pressed):
+			tab_bar.tab_close_pressed.connect(_on_tab_close_pressed)
 	main_container.add_child(_tab_container)
 
 	# 分割线：表格区 / 输入区
@@ -635,19 +643,27 @@ func load_file(file_path: String) -> bool:
 		_switch_to_file(file_path)
 		return true
 	
-	# 加载文件数据
-	var success := _data_processor.load_csv_file(file_path)
+	# 为当前文件创建独立的数据处理器/数据模型（多标签页必须隔离数据源）
+	var tab_processor := CSVDataProcessor.new()
+	# 同步面板级默认配置
+	tab_processor.auto_trim_whitespace = _data_processor.auto_trim_whitespace
+	tab_processor.default_delimiter = _data_processor.default_delimiter
+	
+	var success := tab_processor.load_csv_file(file_path)
 	if not success:
-		push_error("加载文件失败: " + _data_processor.last_error)
+		push_error("加载文件失败: " + tab_processor.last_error)
 		return false
 	
-	# 自动检测并加载 Schema
+	var tab_model := CSVDataModel.new()
+	tab_model.set_data_processor(tab_processor)
+	
+	# 自动检测并加载 Schema（Schema/Validation/StateManager 仍是全局共享）
 	var schema_path := _schema_manager.auto_detect_schema(file_path)
 	if not schema_path.is_empty():
 		_schema_manager.load_schema(schema_path)
 	
-	# 创建标签页
-	var tab_control := _create_tab_control(file_path)
+	# 创建标签页（每个 tab 绑定自己的 data_model/data_processor）
+	var tab_control := _create_tab_control(file_path, tab_model, tab_processor)
 	_tab_container.add_child(tab_control)
 	_tab_container.current_tab = _tab_container.get_tab_count() - 1
 	
@@ -719,8 +735,12 @@ func close_file(file_path: String) -> void:
 	# 从映射中移除
 	_open_files.erase(file_path)
 	
-	# 重置状态管理器
-	_state_manager.close_file()
+	# 若还有其他标签页，切换到一个仍打开的文件，避免 close_file 重置掉当前活跃 tab 的状态
+	if _tab_container.get_tab_count() > 0:
+		_tab_container.current_tab = clampi(_tab_container.current_tab, 0, _tab_container.get_tab_count() - 1)
+	else:
+		# 仅在最后一个标签页关闭时才重置状态管理器
+		_state_manager.close_file()
 	
 	file_closed.emit(file_path)
 	_update_status_bar()
@@ -782,14 +802,16 @@ func close_all_files() -> void:
 
 #region 标签页管理功能 Tab Management Features
 ## 创建标签页控件
-func _create_tab_control(file_path: String) -> Control:
+func _create_tab_control(file_path: String, tab_model: CSVDataModel, tab_processor: CSVDataProcessor) -> Control:
 	var tab_control := CSVEditorTab.new()
 	tab_control.name = file_path.get_file()
 	tab_control._file_path = file_path
+	tab_control._data_model = tab_model
+	tab_control._data_processor = tab_processor
 	tab_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	# 添加表格视图
-	var table_view := _create_table_view()
+	var table_view := _create_table_view(tab_model, tab_processor)
 	tab_control._table_view = table_view
 	tab_control.add_child(table_view)
 	
@@ -797,9 +819,9 @@ func _create_tab_control(file_path: String) -> Control:
 
 
 ## 创建表格视图
-func _create_table_view() -> Control:
+func _create_table_view(tab_model: CSVDataModel, tab_processor: CSVDataProcessor) -> Control:
 	var table_view := TableView.new()
-	table_view.set_data_model(_data_model)
+	table_view.set_data_model(tab_model)
 	table_view.set_state_manager(_state_manager)
 	table_view.set_schema_manager(_schema_manager)
 	table_view.set_validation_manager(_validation_manager)
@@ -844,10 +866,27 @@ func _on_tab_changed(index: int) -> void:
 	
 	if index >= 0 and index < _tab_container.get_tab_count():
 		var tab_control := _tab_container.get_tab_control(index)
-		if tab_control.has_method("get_file_path"):
-			var file_path: String = tab_control.get_file_path()
-			_state_manager.set_file_path(file_path)
-			_update_status_bar()
+		if tab_control:
+			# 切换当前活跃的数据源（否则 Tab 只是“标签”，内容不会变）
+			if tab_control.has_method("get_data_processor"):
+				var p: CSVDataProcessor = tab_control.get_data_processor()
+				if p:
+					_data_processor = p
+					_schema_manager.set_data_processor(_data_processor)
+					_validation_manager.set_data_processor(_data_processor)
+					# 注意：StateManager 只绑定 DataModel（内部会通过 data_model.data_processor 访问）
+					_data_model.set_data_processor(_data_processor)
+			
+			if tab_control.has_method("get_data_model"):
+				var m: CSVDataModel = tab_control.get_data_model()
+				if m:
+					_data_model = m
+					_state_manager.set_data_model(_data_model)
+			
+			if tab_control.has_method("get_file_path"):
+				var file_path: String = tab_control.get_file_path()
+				_state_manager.set_file_path(file_path)
+				_update_status_bar()
 
 	_active_cell = Vector2i(-1, -1)
 	_update_cell_input_ui()

@@ -102,16 +102,22 @@ func _setup_auto_save_timer() -> void:
 
 func set_data_model(model: CSVDataModel) -> void:
 	if data_model:
-		data_model.data_changed.disconnect(_on_data_model_data_changed)
-		data_model.cell_changed.disconnect(_on_data_model_cell_changed)
-		data_model.selection_changed.disconnect(_on_data_model_selection_changed)
+		if data_model.data_changed.is_connected(_on_data_model_data_changed):
+			data_model.data_changed.disconnect(_on_data_model_data_changed)
+		if data_model.cell_changed.is_connected(_on_data_model_cell_changed):
+			data_model.cell_changed.disconnect(_on_data_model_cell_changed)
+		if data_model.selection_changed.is_connected(_on_data_model_selection_changed):
+			data_model.selection_changed.disconnect(_on_data_model_selection_changed)
 	
 	data_model = model
 	
 	if data_model:
-		data_model.data_changed.connect(_on_data_model_data_changed)
-		data_model.cell_changed.connect(_on_data_model_cell_changed)
-		data_model.selection_changed.connect(_on_data_model_selection_changed)
+		if not data_model.data_changed.is_connected(_on_data_model_data_changed):
+			data_model.data_changed.connect(_on_data_model_data_changed)
+		if not data_model.cell_changed.is_connected(_on_data_model_cell_changed):
+			data_model.cell_changed.connect(_on_data_model_cell_changed)
+		if not data_model.selection_changed.is_connected(_on_data_model_selection_changed):
+			data_model.selection_changed.connect(_on_data_model_selection_changed)
 
 
 func reset_all_states() -> void:

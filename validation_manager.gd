@@ -117,8 +117,11 @@ func _initialize_validation_timer() -> void:
 
 ## 设置数据处理器
 func set_data_processor(processor: CSVDataProcessor) -> void:
+	if _data_processor and _data_processor.data_changed.is_connected(_on_data_changed):
+		_data_processor.data_changed.disconnect(_on_data_changed)
+	
 	_data_processor = processor
-	if _data_processor:
+	if _data_processor and not _data_processor.data_changed.is_connected(_on_data_changed):
 		_data_processor.data_changed.connect(_on_data_changed)
 
 

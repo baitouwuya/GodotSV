@@ -38,6 +38,9 @@ var _total_rows: int = 0
 var _successful_rows: int = 0
 var _failed_rows: int = 0
 
+## 当前解析行号（用于类型转换错误报告）
+var _current_row: int = 0
+
 ## 缓存字典（文件路径 -> CSVResource）
 static var _cache: Dictionary = {}
 
@@ -54,6 +57,7 @@ func _init() -> void:
 	_total_rows = 0
 	_successful_rows = 0
 	_failed_rows = 0
+	_current_row = 0
 
 
 ## 加载 CSV 文件
@@ -146,7 +150,23 @@ func parse_all() -> CSVResource:
 		
 		# 检查重复列名
 		_check_duplicate_headers(header_row)
-		
+
+		# 检测并解析 GDSV 语法
+		var gdsv_parser := GDSVColumnParser.new()
+		if gdsv_parser.has_gdsv_syntax(header_row):
+			# 对于 .csv 文件，提示迁移到 .gdsv
+			if _file_path.get_extension().to_lower() == "csv":
+				var migration_msg := "Detected GDSV syntax in .csv file. Consider renaming to .gdsv for better compatibility and to avoid conflicts with Godot's built-in CSV importer."
+				csv_resource.add_warning(migration_msg)
+				_warnings.append(migration_msg)
+
+			var column_defs := gdsv_parser.parse_header(header_row)
+			if not gdsv_parser.has_error():
+				_apply_gdsv_column_definitions(column_defs)
+			else:
+				csv_resource.add_error("GDSV syntax error: " + gdsv_parser.get_last_error())
+				_errors.append("GDSV syntax error: " + gdsv_parser.get_last_error())
+
 		# 应用 Schema 验证
 		if _schema != null:
 			var schema_errors := _schema.validate_header(header_row)
@@ -162,35 +182,49 @@ func parse_all() -> CSVResource:
 	# 解析数据行
 	for i in range(lines.size()):
 		var line := lines[i].strip_edges()
-		if line.is_empty():
+
+		# 跳过空行和注释行
+		if line.is_empty() or line.begins_with("#"):
 			continue
-		
+
+		_current_row = i + 2  # +2 因为跳过表头且从1开始计数
 		var row_data := _parse_csv_line(line)
 		csv_resource.add_raw_row(row_data)
-		
-		# 转换为字典格式
-		var dict_row := _convert_row_to_dict(row_data, header_indices, i + 2)  # +2 因为跳过表头且从1开始计数
-		
+
+		# 转换为字典格式，返回 [dict, extended_header, extended_indices]
+		var row_result := _convert_row_to_dict(row_data, header_indices, _current_row)
+		var dict_row := row_result[0] as Dictionary
+		var extended_header := row_result[1] as PackedStringArray
+		var extended_indices := row_result[2] as Dictionary
+
+		# 如果有扩展列，更新表头和映射
+		if not extended_header.is_empty():
+			for col_name in extended_header:
+				var col_index: int = extended_indices[col_name] as int
+				header_row.append(col_name)
+				header_indices[col_name] = col_index
+				csv_resource.headers = header_row  # 同步更新到资源对象的表头
+
 		if dict_row.is_empty():
 			_failed_rows += 1
 			continue
-		
+
 		# 应用类型转换
 		_apply_type_conversions(dict_row)
-		
+
 		# 应用默认值
 		_apply_default_values(dict_row)
-		
+
 		# 验证数据
 		if _schema != null:
-			var validation_errors := _schema.validate_row(dict_row, i + 2)
+			var validation_errors := _schema.validate_row(dict_row, _current_row)
 			if not validation_errors.is_empty():
 				for error in validation_errors:
 					csv_resource.add_error(error)
 					_errors.append(error)
 				_failed_rows += 1
 				continue
-		
+
 		csv_resource.add_row(dict_row)
 	
 	# 更新统计信息
@@ -298,10 +332,11 @@ func _build_header_indices(header_row: PackedStringArray) -> Dictionary:
 	return indices
 
 
-## 转换行数据为字典格式
-func _convert_row_to_dict(row: PackedStringArray, header_indices: Dictionary, row_index: int) -> Dictionary:
+## 转换行数据为字典格式，同时处理多余字段并扩展表头
+func _convert_row_to_dict(row: PackedStringArray, header_indices: Dictionary, row_index: int) -> Array:
 	var dict := {}
 	
+	# 处理已知列
 	for field_name in header_indices:
 		var col_index: int = header_indices[field_name] as int
 		if col_index < row.size():
@@ -312,7 +347,31 @@ func _convert_row_to_dict(row: PackedStringArray, header_indices: Dictionary, ro
 	_total_rows += 1
 	_successful_rows += 1
 	
-	return dict
+	# 处理多余字段，自动扩展表头
+	var extended_header := PackedStringArray()
+	var extended_indices := {}
+	
+	if row.size() > header_indices.size():
+		var existing_col_names := header_indices.keys()
+		var start_index := header_indices.size()
+		
+		for i in range(start_index, row.size()):
+			var col_name := "Column_" + str(i + 1)
+			var suffix := 1
+			
+			# 确保列名唯一（避免与已存在列名冲突）
+			while col_name in existing_col_names or col_name in extended_indices:
+				col_name = "Column_" + str(i + 1) + "_" + str(suffix)
+				suffix += 1
+			
+			var value := row[i].strip_edges()
+			if not value.is_empty():
+				dict[col_name] = value
+			
+			extended_header.append(col_name)
+			extended_indices[col_name] = i
+	
+	return [dict, extended_header, extended_indices]
 
 
 ## 应用类型转换
@@ -320,23 +379,35 @@ func _apply_type_conversions(row_data: Dictionary) -> void:
 	for field_name in _field_types:
 		var type: CSVFieldDefinition.FieldType = _field_types[field_name]
 		var value := row_data.get(field_name)
-		
+
 		if value == null:
 			continue
-		
-		row_data[field_name] = _convert_value(value, type)
+
+		row_data[field_name] = _convert_value(value, type, field_name)
 
 
 ## 转换值到指定类型
-func _convert_value(value: Variant, type: CSVFieldDefinition.FieldType) -> Variant:
+func _convert_value(value: Variant, type: CSVFieldDefinition.FieldType, field_name: StringName) -> Variant:
 	if value == null:
 		return null
-	
+
 	match type:
 		CSVFieldDefinition.FieldType.TYPE_INT:
-			return int(value)
+			var str_value := str(value)
+			if str_value.is_valid_int():
+				return str_value.to_int()
+
+			var display_path := _get_display_path(_file_path)
+			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to int (file: %s)" % [_current_row, field_name, str_value, display_path])
+			return str_value  # 保留原始字符串
 		CSVFieldDefinition.FieldType.TYPE_FLOAT:
-			return float(value)
+			var str_value := str(value)
+			if str_value.is_valid_float():
+				return str_value.to_float()
+
+			var display_path := _get_display_path(_file_path)
+			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to float (file: %s)" % [_current_row, field_name, str_value, display_path])
+			return str_value  # 保留原始字符串
 		CSVFieldDefinition.FieldType.TYPE_BOOL:
 			if value is bool:
 				return value
@@ -523,3 +594,43 @@ func has_errors() -> bool:
 ## 检查是否有警告
 func has_warnings() -> bool:
 	return _warnings.size() > 0
+
+
+## 应用 GDSV 列定义到类型和默认值映射
+func _apply_gdsv_column_definitions(column_defs: Array) -> void:
+	for col_def in column_defs:
+		var name: String = col_def.get("name", "")
+		var type_str: String = col_def.get("type", "")
+		var default_value: String = col_def.get("default_value", "")
+		var has_type: bool = col_def.get("has_type", false)
+		var has_default: bool = col_def.get("has_default", false)
+
+		if name.is_empty():
+			continue
+
+		# 映射 GDSV 类型字符串到 CSVFieldDefinition.FieldType 枚举
+		if has_type and not type_str.is_empty():
+			var field_type: CSVFieldDefinition.FieldType
+			match type_str.to_lower():
+				"string":
+					field_type = CSVFieldDefinition.FieldType.TYPE_STRING
+				"int":
+					field_type = CSVFieldDefinition.FieldType.TYPE_INT
+				"float":
+					field_type = CSVFieldDefinition.FieldType.TYPE_FLOAT
+				"bool":
+					field_type = CSVFieldDefinition.FieldType.TYPE_BOOL
+				_:
+					# 未知类型，回退为 string
+					field_type = CSVFieldDefinition.FieldType.TYPE_STRING
+					_warnings.append("Unknown type '" + type_str + "' for column '" + name + "', using string")
+
+			_field_types[name] = field_type
+
+		# 应用默认值
+		if has_default:
+			var gdsv_parser := GDSVColumnParser.new()
+			var resolved_type := type_str if has_type else "string"
+			var default_variant := gdsv_parser.apply_default(default_value, resolved_type)
+			_default_values[name] = default_variant
+
