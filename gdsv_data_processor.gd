@@ -768,19 +768,24 @@ func convert_row(row_data: PackedStringArray, type_definitions: Array) -> Array:
 func validate_cell_value(value: String, row_index: int, column_index: int, type_definition: Dictionary) -> Dictionary:
 	_reset_error_state()
 	
-	var type_name: String = str(type_definition.get("type", ""))
-	var is_valid: bool = _data_validator.validate_cell(value, type_name, type_definition)
+	var field_name := str(type_definition.get("name", ""))
+	if field_name.is_empty() and column_index >= 0 and column_index < _cleaned_header.size():
+		field_name = str(_cleaned_header[column_index])
+	var field_info := type_definition.duplicate()
+	field_info["name"] = field_name
+	field_info["type"] = str(type_definition.get("type", "string")).to_lower()
+	var is_valid: bool = _data_validator.ValidateCell(value, field_name, field_info)
 	
-	var result: Dictionary = {}
-	if not is_valid:
-		result["valid"] = false
-		result["row"] = row_index
-		result["column"] = column_index
-		result["error"] = "数据验证失败"
-	else:
-		result["valid"] = true
+	if is_valid:
+		return {}
 	
-	return result
+	return {
+		"row": row_index,
+		"column": column_index,
+		"field_name": field_name,
+		"error_message": "数据验证失败",
+		"value": value,
+	}
 
 
 ## 验证整行
@@ -789,9 +794,9 @@ func validate_row(row_data: PackedStringArray, row_index: int, type_definitions:
 	
 	var errors: Array = []
 	for i in range(min(row_data.size(), type_definitions.size())):
-		var result: Dictionary = validate_cell_value(row_data[i], row_index, i, type_definitions[i])
-		if not result.is_empty() and not result.get("valid", true):
-			errors.append(result)
+		var err: Dictionary = validate_cell_value(row_data[i], row_index, i, type_definitions[i])
+		if not err.is_empty():
+			errors.append(err)
 	
 	return errors
 
@@ -800,17 +805,46 @@ func validate_row(row_data: PackedStringArray, row_index: int, type_definitions:
 func validate_all(type_definitions: Array) -> Array:
 	_reset_error_state()
 	
-	var all_errors: Array = []
+	if not _data_validator:
+		validation_completed.emit([])
+		return []
+	
 	var rows: Array[PackedStringArray] = _get_all_rows_internal()
+	var header := get_header()
+	var field_map := _build_field_map_from_type_definitions(header, type_definitions)
 	
-	for row_index in range(rows.size()):
-		var row_data: PackedStringArray = rows[row_index]
-		var row_errors: Array = validate_row(row_data, row_index, type_definitions)
-		all_errors.append_array(row_errors)
+	_data_validator.ClearErrors()
+	_data_validator.ValidateTable(rows, header, field_map)
 	
-	validation_completed.emit(all_errors)
+	var errors: Array = _data_validator.GetErrors()
+	validation_completed.emit(errors)
+	return errors
+
+
+func _build_field_map_from_type_definitions(header: PackedStringArray, type_definitions: Array) -> Dictionary:
+	var field_map: Dictionary = {}
 	
-	return all_errors
+	for i in range(header.size()):
+		var field_name := str(header[i])
+		var def: Dictionary = type_definitions[i] if i < type_definitions.size() and type_definitions[i] is Dictionary else {}
+		
+		var field_info: Dictionary = {}
+		field_info["name"] = field_name
+		field_info["type"] = str(def.get("type", "string")).to_lower()
+		if def.has("required"):
+			field_info["required"] = bool(def.get("required", false))
+		if def.has("default"):
+			field_info["default"] = def.get("default")
+		if def.has("range"):
+			field_info["range"] = def.get("range")
+		if def.has("enum_values"):
+			field_info["enum_values"] = def.get("enum_values")
+		if def.has("resource_type"):
+			field_info["resource_type"] = str(def.get("resource_type", ""))
+		
+		field_map[field_name] = field_info
+	
+	return field_map
 #endregion
 
 #region 搜索功能 Search Features
