@@ -4,7 +4,7 @@ extends EditorImportPlugin
 
 ## GDSV 统一导入插件，支持 GDSV/CSV/TSV/PSV 等多种表格格式
 
-const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
+const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/scripts/plugin.gd")
 
 
 func _get_importer_name() -> String:

@@ -2,7 +2,7 @@
 class_name GDSVLoader
 extends RefCounted
 
-const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/plugin.gd")
+const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/scripts/plugin.gd")
 
 ## GDSV 文件加载器，提供 GDSV 文件的读取、解析和转换功能
 
@@ -146,7 +146,7 @@ func parse_all() -> GDSVResource:
 	var header_row: PackedStringArray
 	if _has_header and lines.size() > 0:
 		header_row = _parse_csv_line(lines[0])
-		lines = lines.slice(1)  # 移除表头行
+		lines = lines.slice(1) # 移除表头行
 		
 		# 检查重复列名
 		_check_duplicate_headers(header_row)
@@ -187,7 +187,7 @@ func parse_all() -> GDSVResource:
 		if line.is_empty() or line.begins_with("#"):
 			continue
 
-		_current_row = i + 2  # +2 因为跳过表头且从1开始计数
+		_current_row = i + 2 # +2 因为跳过表头且从1开始计数
 		var row_data := _parse_csv_line(line)
 		gdsv_resource.add_raw_row(row_data)
 
@@ -203,7 +203,7 @@ func parse_all() -> GDSVResource:
 				var col_index: int = extended_indices[col_name] as int
 				header_row.append(col_name)
 				header_indices[col_name] = col_index
-				gdsv_resource.headers = header_row  # 同步更新到资源对象的表头
+				gdsv_resource.headers = header_row # 同步更新到资源对象的表头
 
 		if dict_row.is_empty():
 			_failed_rows += 1
@@ -284,7 +284,7 @@ func _read_file_content() -> String:
 	
 	# 处理 BOM（字节顺序标记）
 	if content.length() >= 1:
-		if content.unicode_at(0) == 0xFEFF:  # UTF-8 BOM
+		if content.unicode_at(0) == 0xFEFF: # UTF-8 BOM
 			content = content.substr(1)
 	
 	return content
@@ -399,7 +399,7 @@ func _convert_value(value: Variant, type: GDSVFieldDefinition.FieldType, field_n
 
 			var display_path := _get_display_path(_file_path)
 			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to int (file: %s)" % [_current_row, field_name, str_value, display_path])
-			return str_value  # 保留原始字符串
+			return str_value # 保留原始字符串
 		GDSVFieldDefinition.FieldType.TYPE_FLOAT:
 			var str_value := str(value)
 			if str_value.is_valid_float():
@@ -407,7 +407,7 @@ func _convert_value(value: Variant, type: GDSVFieldDefinition.FieldType, field_n
 
 			var display_path := _get_display_path(_file_path)
 			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to float (file: %s)" % [_current_row, field_name, str_value, display_path])
-			return str_value  # 保留原始字符串
+			return str_value # 保留原始字符串
 		GDSVFieldDefinition.FieldType.TYPE_BOOL:
 			if value is bool:
 				return value
@@ -633,4 +633,3 @@ func _apply_gdsv_column_definitions(column_defs: Array) -> void:
 			var resolved_type := type_str if has_type else "string"
 			var default_variant := gdsv_parser.apply_default(default_value, resolved_type)
 			_default_values[name] = default_variant
-
