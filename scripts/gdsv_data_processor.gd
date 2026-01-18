@@ -14,7 +14,7 @@ signal search_completed(match_count: int, search_time: float)
 
 #region 常量 Constants
 const ERROR_FILE_NOT_FOUND = "文件未找到"
-const ERROR_INVALID_FORMAT = "CSV 格式无效"
+const ERROR_INVALID_FORMAT = "GDSV 格式无效"
 const ERROR_VALIDATION_FAILED = "数据验证失败"
 const ERROR_CONVERSION_FAILED = "类型转换失败"
 const ERROR_SEARCH_FAILED = "搜索失败"
@@ -24,7 +24,7 @@ const ERROR_SEARCH_FAILED = "搜索失败"
 ## 是否自动去除单元格首尾空格
 @export var auto_trim_whitespace: bool = true
 
-## 默认 CSV 分隔符
+## 默认 GDSV 分隔符
 @export var default_delimiter: String = ","
 #endregion
 
@@ -46,23 +46,23 @@ var original_file_extension: String = ".gdsv"
 #endregion
 
 #region 私有变量 Private Variables
-## C++ CSV 解析器实例
-var _csv_parser: CSVParser
+## C++ GDSV 解析器实例
+var _gdsv_parser: GDSVParser
 
 ## C++ 类型标注解析器实例
-var _type_annotation_parser: CSVTypeAnnotationParser
+var _type_annotation_parser: GDSVTypeAnnotationParser
 
 ## C++ 类型转换器实例
-var _type_converter: CSVTypeConverter
+var _type_converter: GDSVTypeConverter
 
 ## C++ 数据验证器实例
-var _data_validator: CSVDataValidator
+var _data_validator: GDSVDataValidator
 
 ## C++ 搜索引擎实例
-var _search_engine: CSVSearchEngine
+var _search_engine: GDSVSearchEngine
 
 ## C++ 表格数据实例
-var _table_data: CSVTableData
+var _table_data: GDSVTableData
 
 ## 原始表头（带类型标注）
 var _original_header: PackedStringArray
@@ -81,12 +81,12 @@ func _ready() -> void:
 
 #region 初始化功能 Initialization Features
 func _initialize_cpp_objects() -> void:
-	_csv_parser = CSVParser.new()
-	_type_annotation_parser = CSVTypeAnnotationParser.new()
-	_type_converter = CSVTypeConverter.new()
-	_data_validator = CSVDataValidator.new()
-	_search_engine = CSVSearchEngine.new()
-	_table_data = CSVTableData.new()
+	_gdsv_parser = GDSVParser.new()
+	_type_annotation_parser = GDSVTypeAnnotationParser.new()
+	_type_converter = GDSVTypeConverter.new()
+	_data_validator = GDSVDataValidator.new()
+	_search_engine = GDSVSearchEngine.new()
+	_table_data = GDSVTableData.new()
 
 
 func reset() -> void:
@@ -127,7 +127,7 @@ func load_gdsv_file(file_path: String) -> bool:
 	return load_gdsv_content(content, file_path)
 
 
-## 加载 CSV 内容字符串
+## 加载 GDSV 内容字符串
 func load_gdsv_content(content: String, file_path: String = "") -> bool:
 	_reset_error_state()
 	
@@ -141,7 +141,7 @@ func load_gdsv_content(content: String, file_path: String = "") -> bool:
 		content = content.substr(1)
 
 	# 兼容：当文件包含表头时，允许在表头前出现注释/空行
-	# 注意：CSVParser 会按“行索引 i==0”来判断表头，因此这里要先把前置注释/空行移除。
+	# 注意：GDSVParser 会按“行索引 i==0”来判断表头，因此这里要先把前置注释/空行移除。
 	var normalized_content := content
 	var lines := normalized_content.split("\n", false)
 	if not lines.is_empty():
@@ -155,18 +155,18 @@ func load_gdsv_content(content: String, file_path: String = "") -> bool:
 		if start_idx > 0:
 			normalized_content = "\n".join(lines.slice(start_idx))
 	
-	var csv_data: Array = _csv_parser.parse_from_string(normalized_content, true, default_delimiter)
-	
-	if _csv_parser.has_error():
-		_set_error(_csv_parser.get_last_error())
+	var gdsv_data: Array = _gdsv_parser.parse_from_string(normalized_content, true, default_delimiter)
+
+	if _gdsv_parser.has_error():
+		_set_error(_gdsv_parser.get_last_error())
 		file_loaded.emit(false, last_error)
 		return false
-	
-	_original_header = _csv_parser.get_header()
+
+	_original_header = _gdsv_parser.get_header()
 	_cleaned_header = _extract_clean_header()
-	
+
 	var rows: Array[PackedStringArray] = []
-	for row in csv_data:
+	for row in gdsv_data:
 		if row is PackedStringArray:
 			rows.append(row)
 	_table_data.initialize(rows, _cleaned_header)
@@ -201,7 +201,7 @@ func save_gdsv_file(file_path: String) -> bool:
 
 	# 重要：按调用方传入的路径原样保存。
 	# 之前的“同路径强制改回 original_file_extension”会导致：
-	# - 用户以为保存的是 `xxx.csv`，实际写到了 `xxx.gdsv`（或反之）
+	# - 用户以为保存的是 `xxx.csv/xxx.gdsv`，实际写到了另一个后缀文件
 	# - 表现为“点保存并关闭了，但磁盘文件没变化”（其实写到了另一个文件）
 	# 因此仅在“完全没有扩展名”时才补默认扩展名。
 	if file_path.get_extension().is_empty():
@@ -211,7 +211,7 @@ func save_gdsv_file(file_path: String) -> bool:
 	# - 打开的是 .gdsv/.tsv（tab 分隔），保存时却写成逗号分隔，导致看起来“没正确写入”
 	default_delimiter = _infer_default_delimiter_for_file(file_path)
 
-	var content := get_csv_string()
+	var content := get_gdsv_string()
 	if content.is_empty():
 		_set_error("没有数据可保存")
 		file_saved.emit(false, last_error)
@@ -255,20 +255,20 @@ func get_file_modified_time(file_path: String) -> int:
 	return 0
 
 
-## 获取 CSV 字符串
-func get_csv_string() -> String:
+## 获取 GDSV 字符串
+func get_gdsv_string() -> String:
 	var rows: Array[PackedStringArray] = _get_all_rows_internal()
 	if rows.is_empty():
 		return ""
 	
-	var csv_lines := PackedStringArray()
-	
-	csv_lines.append(_join_csv_row(_original_header))
-	
+	var gdsv_lines := PackedStringArray()
+
+	gdsv_lines.append(_join_gdsv_row(_original_header))
+
 	for row in rows:
-		csv_lines.append(_join_csv_row(row))
-	
-	return "\n".join(csv_lines)
+		gdsv_lines.append(_join_gdsv_row(row))
+
+	return "\n".join(gdsv_lines)
 #endregion
 
 #region 导入导出功能 Import/Export Features
@@ -288,26 +288,26 @@ func import_tsv_file(file_path: String) -> bool:
 	var content := file.get_as_text()
 	file.close()
 	
-	# 将TSV转换为CSV格式
-	var gdsv_content := _tsv_to_csv(content)
-	
+	# 将TSV转换为GDSV格式
+	var gdsv_content := _tsv_to_gdsv(content)
+
 	return load_gdsv_content(gdsv_content, file_path)
 
 
-## TSV 转换为 CSV
-func _tsv_to_csv(tsv_content: String) -> String:
+## TSV 转换为 GDSV
+func _tsv_to_gdsv(tsv_content: String) -> String:
 	var lines := tsv_content.split("\n")
-	var csv_lines := PackedStringArray()
-	
+	var gdsv_lines := PackedStringArray()
+
 	for line in lines:
 		if line.strip_edges().is_empty():
 			continue
-		
+
 		# 替换制表符为逗号
-		var csv_line := line.replace("\t", ",")
-		csv_lines.append(csv_line)
-	
-	return "\n".join(csv_lines)
+		var gdsv_line := line.replace("\t", ",")
+		gdsv_lines.append(gdsv_line)
+
+	return "\n".join(gdsv_lines)
 
 
 ## 导出为 TSV 文件
@@ -864,18 +864,18 @@ func search_text(search_text: String, case_sensitive: bool = false, match_mode: 
 				if not cell_value.is_empty():
 					var should_match: bool = false
 					if case_sensitive:
-						if match_mode == 0:  # MATCH_CONTAINS
+						if match_mode == 0: # MATCH_CONTAINS
 							should_match = search_text in cell_value
-						elif match_mode == 1:  # MATCH_STARTS_WITH
+						elif match_mode == 1: # MATCH_STARTS_WITH
 							should_match = cell_value.begins_with(search_text)
-						elif match_mode == 2:  # MATCH_ENDS_WITH
+						elif match_mode == 2: # MATCH_ENDS_WITH
 							should_match = cell_value.ends_with(search_text)
 					else:
-						if match_mode == 0:  # MATCH_CONTAINS
+						if match_mode == 0: # MATCH_CONTAINS
 							should_match = search_text.to_lower() in cell_value.to_lower()
-						elif match_mode == 1:  # MATCH_STARTS_WITH
+						elif match_mode == 1: # MATCH_STARTS_WITH
 							should_match = cell_value.to_lower().begins_with(search_text.to_lower())
-						elif match_mode == 2:  # MATCH_ENDS_WITH
+						elif match_mode == 2: # MATCH_ENDS_WITH
 							should_match = cell_value.to_lower().ends_with(search_text.to_lower())
 					
 					if should_match:
@@ -951,18 +951,18 @@ func replace_text(search_text: String, replace_text: String, case_sensitive: boo
 				var should_replace: bool = false
 				
 				if case_sensitive:
-					if match_mode == 0:  # MATCH_CONTAINS
+					if match_mode == 0: # MATCH_CONTAINS
 						should_replace = search_text in cell_value
-					elif match_mode == 1:  # MATCH_STARTS_WITH
+					elif match_mode == 1: # MATCH_STARTS_WITH
 						should_replace = cell_value.begins_with(search_text)
-					elif match_mode == 2:  # MATCH_ENDS_WITH
+					elif match_mode == 2: # MATCH_ENDS_WITH
 						should_replace = cell_value.ends_with(search_text)
 				else:
-					if match_mode == 0:  # MATCH_CONTAINS
+					if match_mode == 0: # MATCH_CONTAINS
 						should_replace = search_text.to_lower() in cell_value.to_lower()
-					elif match_mode == 1:  # MATCH_STARTS_WITH
+					elif match_mode == 1: # MATCH_STARTS_WITH
 						should_replace = cell_value.to_lower().begins_with(search_text.to_lower())
-					elif match_mode == 2:  # MATCH_ENDS_WITH
+					elif match_mode == 2: # MATCH_ENDS_WITH
 						should_replace = cell_value.to_lower().ends_with(search_text.to_lower())
 				
 				if should_replace:
@@ -1051,18 +1051,18 @@ func filter_rows(filter_text: String, case_sensitive: bool = false, match_mode: 
 ## 检查匹配的辅助函数
 func _check_match(cell_value: String, search_text: String, case_sensitive: bool, match_mode: int) -> bool:
 	if case_sensitive:
-		if match_mode == 0:  # MATCH_CONTAINS
+		if match_mode == 0: # MATCH_CONTAINS
 			return search_text in cell_value
-		elif match_mode == 1:  # MATCH_STARTS_WITH
+		elif match_mode == 1: # MATCH_STARTS_WITH
 			return cell_value.begins_with(search_text)
-		elif match_mode == 2:  # MATCH_ENDS_WITH
+		elif match_mode == 2: # MATCH_ENDS_WITH
 			return cell_value.ends_with(search_text)
 	else:
-		if match_mode == 0:  # MATCH_CONTAINS
+		if match_mode == 0: # MATCH_CONTAINS
 			return search_text.to_lower() in cell_value.to_lower()
-		elif match_mode == 1:  # MATCH_STARTS_WITH
+		elif match_mode == 1: # MATCH_STARTS_WITH
 			return cell_value.to_lower().begins_with(search_text.to_lower())
-		elif match_mode == 2:  # MATCH_ENDS_WITH
+		elif match_mode == 2: # MATCH_ENDS_WITH
 			return cell_value.to_lower().ends_with(search_text.to_lower())
 	return false
 #endregion
@@ -1099,8 +1099,8 @@ func _trim_all_cells() -> void:
 		_table_data.batch_set_cells(trim_cells)
 
 
-## 将行数据转换为 CSV 行字符串
-func _join_csv_row(row_data: PackedStringArray) -> String:
+## 将行数据转换为 GDSV 行字符串
+func _join_gdsv_row(row_data: PackedStringArray) -> String:
 	var escaped_cells := PackedStringArray()
 	var delimiter := default_delimiter
 	if delimiter.is_empty():

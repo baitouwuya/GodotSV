@@ -3,7 +3,7 @@ extends EditorPlugin
 
 ## GodotSV 插件入口，负责注册 GDSV 导入插件和编辑器插件
 
-const CSV_IMPORTER_NAME := "godotsv.importer"
+const GDSV_IMPORTER_NAME := "godotsv.importer"
 const LEGACY_TRANSLATION_DIR := "res://.godot/godotsv/legacy_translation"
 const INVALID_TRANSLATION_NAME_CHARS := [":", "[", "]", "(", ")"]
 
@@ -16,8 +16,8 @@ var _legacy_cleanup_attempts: int = 0
 func _enter_tree() -> void:
 	add_to_group("godotsv_plugin")
 	# 确保 GDSVResource 脚本类已注册（避免导入生成的 .res 加载时找不到类型）
-	var csv_resource_script := _load_plugin_script("gdsv_resource.gd")
-	if csv_resource_script == null:
+	var gdsv_resource_script := _load_plugin_script("gdsv_resource.gd")
+	if gdsv_resource_script == null:
 		push_error("GodotSV: 无法加载 gdsv_resource.gd（请确认插件目录完整）")
 		return
 
@@ -55,8 +55,6 @@ func _exit_tree() -> void:
 #endregion
 
 
-
-
 #region 兼容性清理 Compatibility Cleanup
 ## 请求一次“旧的 *.translation”清理（被动触发）。
 ## 该方法会在编辑器扫描结束后再执行，避免与扫描线程冲突。
@@ -71,8 +69,6 @@ static func request_legacy_translation_cleanup() -> void:
 
 	(plugin as EditorPlugin).call_deferred("_schedule_legacy_translation_cleanup")
 #endregion
-
-
 
 
 func _schedule_legacy_translation_cleanup() -> void:
@@ -93,7 +89,7 @@ func _schedule_legacy_translation_cleanup() -> void:
 
 func _cleanup_legacy_translation_files() -> void:
 	# 仅清理“由 翻译导入器误导入产生”的 *.translation 文件：
-	# 文件名形如 <csv_base>.<locale>.translation，并且对应的 <csv_base>.csv 当前使用我们的 importer。
+	# 文件名形如 <legacy_source_base>.<locale>.translation，并且对应的 <legacy_source_base>.csv 当前使用我们的 importer。
 	#
 	# 重要：不要递归扫描整个 res://。
 	# 这会触发 Godot 编辑器在资源扫描/导入阶段对多种资源生成或更新
@@ -107,26 +103,26 @@ func _cleanup_legacy_translation_files() -> void:
 	# 额外清理：删除“文件名非法（含类型标注符号）”的 *.translation 产物。
 	# 这些文件通常来自 Godot 内置 Translation importer 把表头拼进文件名。
 	# 只扫描“使用我们 importer 的 数据文件所在目录”，避免全项目扫描引发锁冲突。
-	_cleanup_invalid_translation_files_for_godotsv_csvs()
+	_cleanup_invalid_translation_files_for_godotsv_sources()
 
 
-func _cleanup_invalid_translation_files_for_godotsv_csvs() -> void:
-	var csv_dirs := _collect_godotsv_csv_dirs()
-	for dir_path: String in csv_dirs:
+func _cleanup_invalid_translation_files_for_godotsv_sources() -> void:
+	var legacy_source_dirs := _collect_godotsv_legacy_source_dirs()
+	for dir_path: String in legacy_source_dirs:
 		_cleanup_invalid_translation_files_in_dir(dir_path)
 
 
-func _collect_godotsv_csv_dirs() -> Array[String]:
+func _collect_godotsv_legacy_source_dirs() -> Array[String]:
 	var result: Array[String] = []
-	var csv_import_paths := _collect_godotsv_csv_import_paths()
-	for csv_import_path: String in csv_import_paths:
-		var dir_path := csv_import_path.get_base_dir()
+	var legacy_source_import_paths := _collect_godotsv_legacy_source_import_paths()
+	for legacy_source_import_path: String in legacy_source_import_paths:
+		var dir_path := legacy_source_import_path.get_base_dir()
 		if not dir_path.is_empty() and not (dir_path in result):
 			result.append(dir_path)
 	return result
 
 
-func _collect_godotsv_csv_import_paths() -> Array[String]:
+func _collect_godotsv_legacy_source_import_paths() -> Array[String]:
 	var result: Array[String] = []
 
 	var editor_if := get_editor_interface()
@@ -141,11 +137,11 @@ func _collect_godotsv_csv_import_paths() -> Array[String]:
 	if root == null:
 		return result
 
-	_collect_godotsv_csv_import_paths_in_dir(root, result)
+	_collect_godotsv_legacy_source_import_paths_in_dir(root, result)
 	return result
 
 
-func _collect_godotsv_csv_import_paths_in_dir(dir, out_paths: Array[String]) -> void:
+func _collect_godotsv_legacy_source_import_paths_in_dir(dir, out_paths: Array[String]) -> void:
 	# 这里的 dir 是 EditorFileSystemDirectory，无法静态类型标注。
 	if dir == null:
 		return
@@ -161,12 +157,12 @@ func _collect_godotsv_csv_import_paths_in_dir(dir, out_paths: Array[String]) -> 
 			continue
 
 		var import_text := FileAccess.get_file_as_string(import_path)
-		if import_text.find('importer="%s"' % CSV_IMPORTER_NAME) >= 0:
+		if import_text.find('importer="%s"' % GDSV_IMPORTER_NAME) >= 0:
 			out_paths.append(file_path)
 
 	var subdir_count: int = dir.get_subdir_count()
 	for j in range(subdir_count):
-		_collect_godotsv_csv_import_paths_in_dir(dir.get_subdir(j), out_paths)
+		_collect_godotsv_legacy_source_import_paths_in_dir(dir.get_subdir(j), out_paths)
 
 
 func _cleanup_invalid_translation_files_in_dir(dir_path: String) -> void:
@@ -235,14 +231,14 @@ func _try_move_legacy_translation_file(translation_path: String) -> void:
 	if dot < 0:
 		return
 
-	var csv_base := stem.substr(0, dot)
-	var gdsv_path := csv_base + ".csv"
-	var csv_import_path := gdsv_path + ".import"
-	if not FileAccess.file_exists(csv_import_path):
+	var legacy_source_base := stem.substr(0, dot)
+	var legacy_source_path := legacy_source_base + ".csv"
+	var legacy_source_import_path := legacy_source_path + ".import"
+	if not FileAccess.file_exists(legacy_source_import_path):
 		return
 
-	var import_text := FileAccess.get_file_as_string(csv_import_path)
-	if import_text.find('importer="%s"' % CSV_IMPORTER_NAME) < 0:
+	var import_text := FileAccess.get_file_as_string(legacy_source_import_path)
+	if import_text.find('importer="%s"' % GDSV_IMPORTER_NAME) < 0:
 		return
 
 	# 移动到隐藏目录，避免在数据文件目录中出现

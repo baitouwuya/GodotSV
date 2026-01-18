@@ -26,7 +26,7 @@ signal schema_file_changed(schema_path: String)
 const SCHEMA_EXTENSIONS: PackedStringArray = [".json", ".csv.schema", ".schema"]
 
 ## 自动检测的 Schema 文件名
-const AUTO_DETECT_SCHEMA_NAMES: PackedStringArray = ["schema.json", "data.schema", ".csv.schema"]
+const AUTO_DETECT_SCHEMA_NAMES: PackedStringArray = ["schema.json", "data.schema", ".gdsv.schema", ".csv.schema"]
 
 ## Schema 文件监控间隔（秒）
 const FILE_WATCH_INTERVAL: float = 1.0
@@ -95,14 +95,14 @@ func set_state_manager(manager: GDSVStateManager) -> void:
 
 #region Schema加载功能 Schema Loading Features
 ## 自动检测 Schema 文件
-func auto_detect_schema(csv_file_path: String) -> String:
-	if csv_file_path.is_empty():
+func auto_detect_schema(gdsv_file_path: String) -> String:
+	if gdsv_file_path.is_empty():
 		return ""
-	
+
 	# 获取 GDSV 文件所在目录
-	var base_dir := csv_file_path.get_base_dir()
-	var file_name := csv_file_path.get_file().get_basename()
-	
+	var base_dir := gdsv_file_path.get_base_dir()
+	var file_name := gdsv_file_path.get_file().get_basename()
+
 	# 1. 检查同名的 .schema 文件
 	var schema_path := base_dir.path_join(file_name + ".schema")
 	if FileAccess.file_exists(schema_path):
@@ -349,29 +349,29 @@ func _on_file_watcher_timeout(schema_path: String) -> void:
 
 #region 内联类型标注功能 Inline Type Annotation Features
 ## 检查是否应该使用外部 Schema
-func should_use_external_schema(csv_file_path: String) -> bool:
+func should_use_external_schema(gdsv_file_path: String) -> bool:
 	if not _external_schema_priority:
 		return false
-	
+
 	if _current_schema_path.is_empty():
 		return false
-	
+
 	# 检查 GDSV 文件是否有内联类型标注
-	var has_inline_annotations := _has_inline_type_annotations(csv_file_path)
-	
+	var has_inline_annotations := _has_inline_type_annotations(gdsv_file_path)
+
 	# 外部 Schema 优先
 	return not has_inline_annotations
 
 
 ## 检查文件是否有内联类型标注
-func _has_inline_type_annotations(csv_file_path: String) -> bool:
-	if csv_file_path.is_empty():
+func _has_inline_type_annotations(gdsv_file_path: String) -> bool:
+	if gdsv_file_path.is_empty():
 		return false
-	
-	var file := FileAccess.open(csv_file_path, FileAccess.READ)
+
+	var file := FileAccess.open(gdsv_file_path, FileAccess.READ)
 	if not file:
 		return false
-	
+
 	# 读取前几行检查
 	var line_count := 0
 	while not file.eof_reached() and line_count < 5:

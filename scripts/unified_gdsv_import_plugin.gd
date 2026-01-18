@@ -126,19 +126,19 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 			push_warning("GDSV 导入警告: Schema 文件不存在: %s" % schema_path)
 
 	# 解析 GDSV 数据
-	var csv_resource: GDSVResource = loader.parse_all()
-	csv_resource.source_gdsv_path = source_file
+	var gdsv_resource: GDSVResource = loader.parse_all()
+	gdsv_resource.source_gdsv_path = source_file
 
 	# 检查是否有错误
-	if csv_resource.has_errors():
-		var errors: Array[String] = csv_resource.get_errors()
+	if gdsv_resource.has_errors():
+		var errors: Array[String] = gdsv_resource.get_errors()
 		for error: String in errors:
 			push_error("GDSV 导入错误 (%s): %s" % [source_file, error])
 		return ERR_PARSE_ERROR
 
 	# 保存资源
 	var save_path_str := "%s.%s" % [save_path, _get_save_extension()]
-	var result := ResourceSaver.save(csv_resource, save_path_str)
+	var result := ResourceSaver.save(gdsv_resource, save_path_str)
 
 	if result != OK:
 		push_error("GDSV 导入失败: 无法保存资源到 %s (错误码: %d)" % [save_path_str, result])

@@ -6,8 +6,8 @@ extends EditorPlugin
 
 #region 常量 Constants
 ## 面板当前使用纯代码构建（GDSVEditorPanel.new()），不依赖.tscn文件
-const CSV_EDITOR_PANEL_PATH = ""
-const CSV_FILE_EXTENSION = ".csv"
+const GDSV_EDITOR_PANEL_PATH = ""
+const LEGACY_SOURCE_EXTENSION = ".csv"
 const GDSV_FILE_EXTENSION = ".gdsv"
 
 # 作为“源表格文件”允许被编辑器打开的扩展名集合。
@@ -39,7 +39,7 @@ var is_panel_loaded: bool = false
 #region 私有变量 Private Variables
 var _bottom_panel_button: Button
 var _tab_container: TabContainer
-var _file_tabs: Dictionary = {}  # {file_path: GDSVEditorTab}
+var _file_tabs: Dictionary = {} # {file_path: GDSVEditorTab}
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
@@ -139,8 +139,8 @@ func _guess_source_gdsv_from_imported_resource_path(imported_resource_path: Stri
 	var marker_index := file_name.find(".csv-")
 	if marker_index < 0:
 		return ""
-	var csv_file_name := file_name.substr(0, marker_index + 4)
-	return _find_file_in_project("res://", csv_file_name)
+	var legacy_source_file_name := file_name.substr(0, marker_index + 4)
+	return _find_file_in_project("res://", legacy_source_file_name)
 
 
 func _find_file_in_project(dir_path: String, target_file_name: String) -> String:

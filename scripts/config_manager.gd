@@ -75,7 +75,7 @@ const DEFAULT_TYPE_CHANGE_EMPTY_POLICY = "use_default"
 
 #region 公共变量 Public Variables
 ## 配置文件路径
-var config_file_path: String = "user://csv_editor_config.json"
+var config_file_path: String = "user://gdsv_editor_config.json"
 
 ## 配置数据
 var config_data: Dictionary = {}
