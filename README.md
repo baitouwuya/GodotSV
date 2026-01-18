@@ -113,7 +113,7 @@ var resource = loader.load_file("res://data/users.csv")
 | `with_default` | `field_name: StringName, value: Variant` | `GDSVLoader` | 设置字段默认值 |
 | `with_schema` | `schema: GDSVSchema` | `GDSVLoader` | 应用 Schema 验证 |
 | `parse_all` | - | `GDSVResource` | 解析全部数据 |
-| `stream` | - | `GDSVStreamReader` | 创建流式读取器 |
+| `stream` | - | `GDSVStreamReaderGD` | 创建流式读取器 |
 | `has_errors` | - | `bool` | 是否有错误 |
 | `get_errors` | - | `Array[String]` | 获取错误信息 |
 
@@ -187,7 +187,7 @@ FieldType 枚举：
 | `with_unique` | `unique: bool = true` | `GDSVFieldDefinition` | 设置是否唯一 |
 | `validate_value` | `value: Variant, index: int` | `bool` | 验证单个值 |
 
-### GDSVStreamReader - 流式读取器
+### GDSVStreamReaderGD - 流式读取器
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|

@@ -5,34 +5,34 @@
 ## 目录
 
 1. [C++ 核心类 API](#c-核心类-api)
-   - [CSVParser](#csvparser-csv-parser)
-   - [CSVTableData](#csvtabledata-表格数据管理器)
-   - [CSVTypeConverter](#csvtypeconverter-类型转换器)
-   - [CSVSearchEngine](#csvsearchengine-搜索引擎)
-   - [CSVDataValidator](#csvdatavalidator-数据验证器)
-   - [CSVStreamReader](#csvstreamreader-流式读取器)
-   - [CSVTypeAnnotationParser](#csvtypeannotationparser-类型注解解析器)
+   - [GDSVParser](#gdsvparser-gdsv-解析器)
+   - [GDSVTableData](#gdsvtabledata-表格数据管理器)
+   - [GDSVTypeConverter](#gdsvtypeconverter-类型转换器)
+   - [GDSVSearchEngine](#gdsvsearchengine-搜索引擎)
+   - [GDSVDataValidator](#gdsvdatavalidator-数据验证器)
+   - [GDSVStreamReader](#gdsvstreamreader-流式读取器)
+   - [GDSVTypeAnnotationParser](#gdsvtypeannotationparser-类型注解解析器)
 2. [GDScript 高级 API](#gdscript-高级-api)
-   - [CSVLoader](#csvloader-高级加载器)
-   - [CSVResource](#csvresource-数据资源)
-   - [CSVSchema](#csvschema-schema-定义)
-   - [CSVFieldDefinition](#csvfielddefinition-字段定义)
-   - [CSVStreamReaderGD](#csvstreamreadergd-流式读取器-gdscript)
+   - [GDSVLoader](#gdsvloader-高级加载器)
+   - [GDSVResource](#gdsvresource-数据资源)
+   - [GDSVSchema](#gdsvschema-schema-定义)
+   - [GDSVFieldDefinition](#gdsvfielddefinition-字段定义)
+   - [GDSVStreamReaderGD](#gdsvstreamreadergd-流式读取器-gdscript)
 
 ---
 
 ## C++ 核心类 API
 
-### CSVParser - CSV 解析器
+### GDSVParser - GDSV/CSV 解析器
 
-负责将 CSV 文件或字符串解析为结构化的二维数组。
+负责将 GDSV/CSV 文件或字符串解析为结构化的二维数组。
 
 #### 方法
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `ParseFromString` | `(content: String, has_header: bool = true, delimiter: String = ",") -> Array` | 从字符串解析 CSV |
-| `ParseFromFile` | `(file_path: String, has_header: bool = true, delimiter: String = ",") -> Array` | 从文件解析 CSV |
+| `ParseFromString` | `(content: String, has_header: bool = true, delimiter: String = ",") -> Array` | 从字符串解析 GDSV/CSV |
+| `ParseFromFile` | `(file_path: String, has_header: bool = true, delimiter: String = ",") -> Array` | 从文件解析 GDSV/CSV |
 | `GetHeader` | `() -> PackedStringArray` | 获取表头行 |
 | `GetRowCount` | `() -> int` | 获取数据行数（不含表头） |
 | `GetColumnCount` | `() -> int` | 获取列数 |
@@ -42,10 +42,10 @@
 #### 使用示例
 
 ```gdscript
-var parser := CSVParser.new()
+var parser := GDSVParser.new()
 
 # 从文件解析
-var rows := parser.ParseFromFile("res://data/items.csv")
+var rows := parser.ParseFromFile("res://data/items.gdsv")
 if parser.HasError():
     print("解析错误: ", parser.GetLastError())
     return
@@ -55,13 +55,13 @@ print("行数: ", parser.GetRowCount())
 print("列数: ", parser.GetColumnCount())
 
 # 从字符串解析
-var csv_text := "name,age,city\nAlice,25,New York\nBob,30,Los Angeles"
-rows = parser.ParseFromString(csv_text)
+var gdsv_text := "name,age,city\nAlice,25,New York\nBob,30,Los Angeles"
+rows = parser.ParseFromString(gdsv_text)
 ```
 
 ---
 
-### CSVTableData - 表格数据管理器
+### GDSVTableData - 表格数据管理器
 
 提供完整的表格数据 CRUD（增删改查）操作。
 
@@ -112,7 +112,7 @@ rows = parser.ParseFromString(csv_text)
 #### 使用示例
 
 ```gdscript
-var table := CSVTableData.new()
+var table := GDSVTableData.new()
 
 # 初始化表格
 table.Initialize([["Alice", "25"], ["Bob", "30"]], ["name", "age"])
@@ -144,7 +144,7 @@ table.Resize(10, 3, "N/A")
 
 ---
 
-### CSVTypeConverter - 类型转换器
+### GDSVTypeConverter - 类型转换器
 
 将字符串转换为各种 Godot 类型。
 
@@ -182,7 +182,7 @@ table.Resize(10, 3, "N/A")
 #### 使用示例
 
 ```gdscript
-var converter := CSVTypeConverter.new()
+var converter := GDSVTypeConverter.new()
 
 # 基本类型转换
 var age: int = converter.ToInt("25")
@@ -211,7 +211,7 @@ var converted: Array = converter.ConvertRow(["50", "99.5", "true"], types, param
 
 ---
 
-### CSVSearchEngine - 搜索引擎
+### GDSVSearchEngine - 搜索引擎
 
 提供高级搜索、替换和过滤功能。
 
@@ -257,17 +257,17 @@ var converted: Array = converter.ConvertRow(["50", "99.5", "true"], types, param
 #### 使用示例
 
 ```gdscript
-var engine := CSVSearchEngine.new()
-var rows := _get_csv_rows()  # 获取 CSV 行数据
+var engine := GDSVSearchEngine.new()
+var rows := _get_gdsv_rows()  # 获取 GDSV/CSV 行数据
 
 # 基本搜索 - 查找包含 "sword" 的行
-var results := engine.Search(rows, "sword", false, CSVSearchEngine.MATCH_CONTAINS)
+var results := engine.Search(rows, "sword", false, GDSVSearchEngine.MATCH_CONTAINS)
 print("找到 %d 个匹配" % engine.GetMatchCount())
 print("搜索耗时: %.2f ms" % engine.GetSearchTime())
 
 # 指定列搜索
 var hero_columns := PackedInt32Array([0, 1, 2])  # 只搜索前3列
-results = engine.Search(rows, "legendary", false, CSVSearchEngine.MATCH_EQUALS, hero_columns)
+results = engine.Search(rows, "legendary", false, GDSVSearchEngine.MATCH_EQUALS, hero_columns)
 
 # 正则表达式搜索
 results = engine.SearchRegex(rows, r"^\d+$", hero_columns)  # 查找纯数字
@@ -291,9 +291,9 @@ var prev_match := engine.FindPrevious(rows, "sword", 10, 5)
 
 ---
 
-### CSVDataValidator - 数据验证器
+### GDSVDataValidator - 数据验证器
 
-验证 CSV 数据是否符合类型和约束要求。
+验证 GDSV/CSV 数据是否符合类型和约束要求。
 
 #### 方法
 
@@ -343,7 +343,7 @@ var prev_match := engine.FindPrevious(rows, "sword", 10, 5)
 #### 使用示例
 
 ```gdscript
-var validator := CSVDataValidator.new()
+var validator := GDSVDataValidator.new()
 
 # 定义字段映射
 var field_map := {
@@ -368,9 +368,9 @@ is_valid = validator.validate_row(row, header, field_map)
 
 ---
 
-### CSVStreamReader - 流式读取器
+### GDSVStreamReader - 流式读取器
 
-用于逐行读取大型 CSV 文件，降低内存占用。
+用于逐行读取大型 GDSV/CSV 文件，降低内存占用。
 
 #### 方法
 
@@ -399,10 +399,10 @@ is_valid = validator.validate_row(row, header, field_map)
 #### 使用示例
 
 ```gdscript
-var reader := CSVStreamReader.new()
+var reader := GDSVStreamReader.new()
 
 # 打开文件
-if not reader.OpenFile("res://data/large_file.csv"):
+if not reader.OpenFile("res://data/large_file.gdsv"):
     print("打开文件失败: ", reader.GetLastError())
     return
 
@@ -429,7 +429,7 @@ while not reader.IsEOF():
 reader.CloseFile()
 
 # 分批读取
-if reader.OpenFile("res://data/large_file.csv"):
+if reader.OpenFile("res://data/large_file.gdsv"):
     var batch_size := 100
     var total := 0
 
@@ -444,7 +444,7 @@ if reader.OpenFile("res://data/large_file.csv"):
 
 ---
 
-### CSVTypeAnnotationParser - 类型注解解析器
+### GDSVTypeAnnotationParser - 类型注解解析器
 
 解析表头中的类型标注语法，支持内联定义数据类型。
 
@@ -477,7 +477,7 @@ if reader.OpenFile("res://data/large_file.csv"):
 #### 使用示例
 
 ```gdscript
-var parser := CSVTypeAnnotationParser.new()
+var parser := GDSVTypeAnnotationParser.new()
 
 # 带类型注解的表头
 var annotated_header := PackedStringArray([
@@ -511,7 +511,7 @@ print("tags 元素类型: ", parser.GetArrayElementType("tags"))
 # 结果: "string"
 
 # 检查语法有效性
-var is_valid := CSVTypeAnnotationParser.IsAnnotationValid("price:float[0.0..1000.0]")
+var is_valid := GDSVTypeAnnotationParser.IsAnnotationValid("price:float[0.0..1000.0]")
 print("语法是否有效: ", is_valid)  # true
 ```
 
@@ -519,9 +519,9 @@ print("语法是否有效: ", is_valid)  # true
 
 ## GDScript 高级 API
 
-### CSVLoader - 高级加载器
+### GDSVLoader - 高级加载器
 
-提供链式调用 API，简洁优雅的 CSV 加载方式。
+提供链式调用 API，简洁优雅的 GDSV/CSV 加载方式。
 
 #### 方法
 
@@ -529,20 +529,20 @@ print("语法是否有效: ", is_valid)  # true
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `load_file` | `(path: String) -> CSVLoader` | 加载 CSV 文件 |
-| `with_header` | `(has_header: bool) -> CSVLoader` | 设置是否包含表头 |
-| `with_delimiter` | `(delimiter: String) -> CSVLoader` | 设置分隔符 |
-| `with_type` | `(field_name: StringName, type: FieldType) -> CSVLoader` | 设置字段类型 |
-| `with_default` | `(field_name: StringName, default_value: Variant) -> CSVLoader` | 设置字段默认值 |
-| `with_required_fields` | `(fields: Array[StringName]) -> CSVLoader` | 设置必需字段 |
-| `with_schema` | `(schema: CSVSchema) -> CSVLoader` | 设置 Schema |
+| `load_file` | `(path: String) -> GDSVLoader` | 加载 GDSV/CSV 文件 |
+| `with_header` | `(has_header: bool) -> GDSVLoader` | 设置是否包含表头 |
+| `with_delimiter` | `(delimiter: String) -> GDSVLoader` | 设置分隔符 |
+| `with_type` | `(field_name: StringName, type: FieldType) -> GDSVLoader` | 设置字段类型 |
+| `with_default` | `(field_name: StringName, default_value: Variant) -> GDSVLoader` | 设置字段默认值 |
+| `with_required_fields` | `(fields: Array[StringName]) -> GDSVLoader` | 设置必需字段 |
+| `with_schema` | `(schema: GDSVSchema) -> GDSVLoader` | 设置 Schema |
 
 ##### 数据读取方法
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `parse_all` | `() -> CSVResource` | 解析所有数据 |
-| `stream` | `() -> CSVStreamReaderGD` | 创建流式读取器 |
+| `parse_all` | `() -> GDSVResource` | 解析所有数据 |
+| `stream` | `() -> GDSVStreamReaderGD` | 创建流式读取器 |
 
 ##### 缓存和工具方法
 
@@ -558,17 +558,17 @@ print("语法是否有效: ", is_valid)  # true
 
 ```gdscript
 # 基础用法
-var items := CSVLoader.new()
-    .load_file("res://data/items.csv")
+var items := GDSVLoader.new()
+    .load_file("res://data/items.gdsv")
     .parse_all()
 
 # 完整配置
-var items_configured := CSVLoader.new()
-    .load_file("res://data/items.csv")
+var items_configured := GDSVLoader.new()
+    .load_file("res://data/items.gdsv")
     .with_header(true)
     .with_delimiter(",")
-    .with_type("price", CSVFieldDefinition.FieldType.TYPE_INT)
-    .with_type("stackable", CSVFieldDefinition.FieldType.TYPE_BOOL)
+    .with_type("price", GDSVFieldDefinition.FieldType.TYPE_INT)
+    .with_type("stackable", GDSVFieldDefinition.FieldType.TYPE_BOOL)
     .with_default("price", 0)
     .with_default("description", "No description")
     .with_schema(my_schema)
@@ -580,14 +580,14 @@ if items.has_errors():
         print("错误: ", error)
 
 # 清除缓存
-CSVLoader.clear_cache()
+GDSVLoader.clear_cache()
 ```
 
 ---
 
-### CSVResource - 数据资源
+### GDSVResource - 数据资源
 
-存储解析后的 CSV 数据，继承自 `Resource`，可被保存和加载。
+存储解析后的 GDSV/CSV 数据，继承自 `Resource`，可被保存和加载。
 
 #### 属性
 
@@ -603,7 +603,7 @@ CSVLoader.clear_cache()
 | `failed_rows` | `int` | 失败行数 |
 | `has_header` | `bool` | 是否包含表头 |
 | `delimiter` | `String` | 分隔符 |
-| `source_csv_path` | `String` | 源文件路径 |
+| `source_gdsv_path` | `String` | 源文件路径 |
 
 #### 数据访问方法
 
@@ -639,7 +639,7 @@ CSVLoader.clear_cache()
 #### 使用示例
 
 ```gdscript
-var items := CSVLoader.new().load_file("res://data/items.csv").parse_all()
+var items := GDSVLoader.new().load_file("res://data/items.gdsv").parse_all()
 
 # 访问数据
 var sword_name: String = items.get_string(0, "display_name")
@@ -669,15 +669,15 @@ if items.has_errors():
 
 ---
 
-### CSVSchema - Schema 定义
+### GDSVSchema - Schema 定义
 
-定义 CSV 数据模式和验证规则，继承自 `Resource`。
+定义 GDSV/CSV 数据模式和验证规则，继承自 `Resource`。
 
 #### 属性
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| `field_definitions` | `Dictionary` | 字段定义字典（字段名 -> CSVFieldDefinition） |
+| `field_definitions` | `Dictionary` | 字段定义字典（字段名 -> GDSVFieldDefinition） |
 | `has_header` | `bool` | 是否包含表头 |
 | `delimiter` | `String` | 分隔符（默认为逗号） |
 
@@ -687,8 +687,8 @@ if items.has_errors():
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `add_field` | `(field_name: StringName, field_type: FieldType = TYPE_STRING) -> CSVFieldDefinition` | 添加字段定义 |
-| `get_field_definition` | `(field_name: StringName) -> CSVFieldDefinition` | 获取字段定义 |
+| `add_field` | `(field_name: StringName, field_type: FieldType = TYPE_STRING) -> GDSVFieldDefinition` | 添加字段定义 |
+| `get_field_definition` | `(field_name: StringName) -> GDSVFieldDefinition` | 获取字段定义 |
 | `get_field_names` | `() -> Array` | 获取所有字段名 |
 | `has_field` | `(field_name: StringName) -> bool` | 检查是否包含字段 |
 | `get_field_count` | `() -> int` | 获取字段数量 |
@@ -717,27 +717,27 @@ if items.has_errors():
 
 ```gdscript
 # 创建 Schema
-var schema := CSVSchema.new()
+var schema := GDSVSchema.new()
 
 # 定义字段
-schema.add_field("id", CSVFieldDefinition.FieldType.TYPE_STRING_NAME)
+schema.add_field("id", GDSVFieldDefinition.FieldType.TYPE_STRING_NAME)
     .with_required(true)
     .with_unique(true)
 
-schema.add_field("price", CSVFieldDefinition.FieldType.TYPE_INT)
+schema.add_field("price", GDSVFieldDefinition.FieldType.TYPE_INT)
     .with_required(true)
     .with_range(0, 10000)
     .with_default(0)
 
-schema.add_field("rarity", CSVFieldDefinition.FieldType.TYPE_STRING)
+schema.add_field("rarity", GDSVFieldDefinition.FieldType.TYPE_STRING)
     .with_enum(["common", "rare", "epic", "legendary"])
 
-schema.add_field("texture", CSVFieldDefinition.FieldType.TYPE_TEXTURE)
+schema.add_field("texture", GDSVFieldDefinition.FieldType.TYPE_TEXTURE)
     .with_resource_base_path("res://assets/textures/")
 
 # 使用 Schema 加载数据
-var items := CSVLoader.new()
-    .load_file("res://data/items.csv")
+var items := GDSVLoader.new()
+    .load_file("res://data/items.gdsv")
     .with_schema(schema)
     .parse_all()
 
@@ -749,12 +749,12 @@ if items.has_errors():
 ResourceSaver.save(schema, "res://data/schemas/items_schema.tres")
 
 # 加载已保存的 Schema
-var loaded_schema: CSVSchema = load("res://data/schemas/items_schema.tres")
+var loaded_schema: GDSVSchema = load("res://data/schemas/items_schema.tres")
 ```
 
 ---
 
-### CSVFieldDefinition - 字段定义
+### GDSVFieldDefinition - 字段定义
 
 定义单个字段的类型和验证规则。
 
@@ -794,14 +794,14 @@ var loaded_schema: CSVSchema = load("res://data/schemas/items_schema.tres")
 
 | 方法 | 签名 | 说明 |
 |------|------|------|
-| `with_type` | `(type: FieldType) -> CSVFieldDefinition` | 设置字段类型 |
-| `with_default` | `(default_value: Variant) -> CSVFieldDefinition` | 设置默认值 |
-| `with_required` | `(required: bool = true) -> CSVFieldDefinition` | 设置是否必需 |
-| `with_range` | `(min: Variant, max: Variant) -> CSVFieldDefinition` | 设置范围约束 |
-| `with_enum` | `(enum_values: Array) -> CSVFieldDefinition` | 设置枚举值 |
-| `with_unique` | `(unique: bool = true) -> CSVFieldDefinition` | 设置是否唯一 |
-| `with_resource_base_path` | `(path: String) -> CSVFieldDefinition` | 设置资源路径 |
-| `with_description` | `(desc: String) -> CSVFieldDefinition` | 设置描述 |
+| `with_type` | `(type: FieldType) -> GDSVFieldDefinition` | 设置字段类型 |
+| `with_default` | `(default_value: Variant) -> GDSVFieldDefinition` | 设置默认值 |
+| `with_required` | `(required: bool = true) -> GDSVFieldDefinition` | 设置是否必需 |
+| `with_range` | `(min: Variant, max: Variant) -> GDSVFieldDefinition` | 设置范围约束 |
+| `with_enum` | `(enum_values: Array) -> GDSVFieldDefinition` | 设置枚举值 |
+| `with_unique` | `(unique: bool = true) -> GDSVFieldDefinition` | 设置是否唯一 |
+| `with_resource_base_path` | `(path: String) -> GDSVFieldDefinition` | 设置资源路径 |
+| `with_description` | `(desc: String) -> GDSVFieldDefinition` | 设置描述 |
 
 ##### 验证方法
 
@@ -816,9 +816,9 @@ var loaded_schema: CSVSchema = load("res://data/schemas/items_schema.tres")
 
 ```gdscript
 # 创建字段定义
-var field := CSVFieldDefinition.new(
+var field := GDSVFieldDefinition.new(
     "price",
-    CSVFieldDefinition.FieldType.TYPE_INT
+    GDSVFieldDefinition.FieldType.TYPE_INT
 )
 
 # 链式配置
@@ -834,21 +834,21 @@ if not is_valid:
     print(field.get_validation_error(500, 1))
 
 # 在 Schema 中使用
-var schema := CSVSchema.new()
-schema.add_field("name", CSVFieldDefinition.FieldType.TYPE_STRING)
+var schema := GDSVSchema.new()
+schema.add_field("name", GDSVFieldDefinition.FieldType.TYPE_STRING)
     .with_required(true)
     .with_unique(true)
 
-schema.add_field("price", CSVFieldDefinition.FieldType.TYPE_INT)
+schema.add_field("price", GDSVFieldDefinition.FieldType.TYPE_INT)
     .with_range(0, 10000)
     .with_default(0)
 ```
 
 ---
 
-### CSVStreamReaderGD - 流式读取器 (GDScript)
+### GDSVStreamReaderGD - 流式读取器 (GDScript)
 
-GDScript 封装的流式读取器，用于逐行处理大型 CSV 文件。
+GDScript 封装的流式读取器，用于逐行处理大型 GDSV/CSV 文件。
 
 #### 方法
 
@@ -868,7 +868,7 @@ GDScript 封装的流式读取器，用于逐行处理大型 CSV 文件。
 |------|------|------|
 | `set_field_type` | `(field_name: StringName, type: FieldType)` | 设置字段类型 |
 | `set_default_value` | `(field_name: StringName, default_value: Variant)` | 设置默认值 |
-| `set_schema` | `(schema: CSVSchema)` | 设置 Schema |
+| `set_schema` | `(schema: GDSVSchema)` | 设置 Schema |
 
 ##### 错误处理
 
@@ -883,9 +883,9 @@ GDScript 封装的流式读取器，用于逐行处理大型 CSV 文件。
 
 ```gdscript
 # 创建流式读取器
-var reader := CSVLoader.new()
-    .load_file("res://data/large_file.csv")
-    .with_type("price", CSVFieldDefinition.FieldType.TYPE_INT)
+var reader := GDSVLoader.new()
+    .load_file("res://data/large_file.gdsv")
+    .with_type("price", GDSVFieldDefinition.FieldType.TYPE_INT)
     .stream()
 
 # 读取数据
@@ -929,24 +929,24 @@ if reader.has_errors():
 ```gdscript
 func load_and_query_items() -> void:
     # 创建 Schema
-    var schema := CSVSchema.new()
-    schema.add_field("id", CSVFieldDefinition.FieldType.TYPE_STRING_NAME)
+    var schema := GDSVSchema.new()
+    schema.add_field("id", GDSVFieldDefinition.FieldType.TYPE_STRING_NAME)
         .with_required(true)
         .with_unique(true)
 
-    schema.add_field("price", CSVFieldDefinition.FieldType.TYPE_INT)
+    schema.add_field("price", GDSVFieldDefinition.FieldType.TYPE_INT)
         .with_range(0, 10000)
         .with_default(0)
 
-    schema.add_field("stackable", CSVFieldDefinition.FieldType.TYPE_BOOL)
+    schema.add_field("stackable", GDSVFieldDefinition.FieldType.TYPE_BOOL)
         .with_default(false)
 
-    schema.add_field("rarity", CSVFieldDefinition.FieldType.TYPE_STRING)
+    schema.add_field("rarity", GDSVFieldDefinition.FieldType.TYPE_STRING)
         .with_enum(["common", "rare", "epic", "legendary"])
 
     # 加载数据
-    var items := CSVLoader.new()
-        .load_file("res://data/items.csv")
+    var items := GDSVLoader.new()
+        .load_file("res://data/items.gdsv")
         .with_schema(schema)
         .parse_all()
 
@@ -976,15 +976,15 @@ func load_and_query_items() -> void:
 
 ```gdscript
 func search_and_replace() -> void:
-    # 解析 CSV
-    var parser := CSVParser.new()
-    var rows := parser.ParseFromFile("res://data/products.csv")
+    # 解析 GDSV/CSV
+    var parser := GDSVParser.new()
+    var rows := parser.ParseFromFile("res://data/products.gdsv")
 
     # 创建搜索引擎
-    var engine := CSVSearchEngine.new()
+    var engine := GDSVSearchEngine.new()
 
     # 搜索包含 "old" 的产品
-    var results := engine.Search(rows, "old", false, CSVSearchEngine.MATCH_CONTAINS)
+    var results := engine.Search(rows, "old", false, GDSVSearchEngine.MATCH_CONTAINS)
 
     print("找到 %d 个包含 'old' 的产品，耗时 %.2f ms" % [
         engine.GetMatchCount(),
@@ -999,7 +999,7 @@ func search_and_replace() -> void:
     var all_rows := parser.GetRows()
 
     # 使用表格数据管理器
-    var table := CSVTableData.new()
+    var table := GDSVTableData.new()
     table.Initialize(new_rows, parser.GetHeader())
 
     # 查找并修改数据
@@ -1012,18 +1012,18 @@ func search_and_replace() -> void:
 ### 示例 3：流式处理大文件
 
 ```gdscript
-func process_large_csv() -> void:
+func process_large_gdsv() -> void:
     # 创建 Schema
-    var schema := CSVSchema.new()
-    schema.add_field("user_id", CSVFieldDefinition.FieldType.TYPE_STRING_NAME)
+    var schema := GDSVSchema.new()
+    schema.add_field("user_id", GDSVFieldDefinition.FieldType.TYPE_STRING_NAME)
         .with_unique(true)
-    schema.add_field("level", CSVFieldDefinition.FieldType.TYPE_INT)
+    schema.add_field("level", GDSVFieldDefinition.FieldType.TYPE_INT)
         .with_range(1, 100)
-    schema.add_field("exp", CSVFieldDefinition.FieldType.TYPE_INT)
+    schema.add_field("exp", GDSVFieldDefinition.FieldType.TYPE_INT)
 
     # 创建流式读取器
-    var reader := CSVLoader.new()
-        .load_file("res://data/users_large.csv")
+    var reader := GDSVLoader.new()
+        .load_file("res://data/users_large.gdsv")
         .with_schema(schema)
         .stream()
 
@@ -1075,8 +1075,8 @@ func process_large_csv() -> void:
 ### 示例 4：使用类型注解解析器
 
 ```gdscript
-func parse_annotated_csv() -> void:
-    # 带类型注解的 CSV 内容
+func parse_annotated_gdsv() -> void:
+    # 带类型注解的 GDSV/CSV 内容
     var csv_content := """
 *id:int[1..9999],name:string=default_name,price:float[0.0..9999.0],rarity:enum(common,rare,epic),stock:bool
 1,Sword,99.99,rare,true
@@ -1085,13 +1085,13 @@ func parse_annotated_csv() -> void:
 4,Dragon Armor,999.99,epic,false
 """
 
-    # 解析 CSV
-    var parser := CSVParser.new()
+    # 解析 GDSV/CSV
+    var parser := GDSVParser.new()
     var rows := parser.ParseFromString(csv_content)
     var header := parser.GetHeader()
 
     # 使用类型注解解析器
-    var annotation_parser := CSVTypeAnnotationParser.new()
+    var annotation_parser := GDSVTypeAnnotationParser.new()
     var clean_header := annotation_parser.ParseHeader(header)
 
     print("字段类型信息:")
@@ -1106,7 +1106,7 @@ func parse_annotated_csv() -> void:
         ])
 
     # 创建类型转换器
-    var converter := CSVTypeConverter.new()
+    var converter := GDSVTypeConverter.new()
 
     # 处理每行数据
     for i in range(rows.size()):
@@ -1145,42 +1145,42 @@ func parse_annotated_csv() -> void:
 ```gdscript
 class_name GodotSVHandler extends Node
 
-## 安全的 CSV 加载函数
-func load_csv_safely(file_path: String, schema: CSVSchema = null) -> CSVResource:
+## 安全的 GDSV 加载函数
+func load_gdsv_safely(file_path: String, schema: GDSVSchema = null) -> GDSVResource:
     # 1. 检查文件是否存在
     if not FileAccess.file_exists(file_path):
         push_error("文件不存在: " + file_path)
         return null
 
     # 2. 加载数据
-    var data := CSVLoader.new()
+    var data := GDSVLoader.new()
         .load_file(file_path)
         .with_schema(schema)
         .parse_all()
 
     # 3. 检查加载错误
     if data == null or data.has_errors():
-        push_error("CSV 加载失败:")
+        push_error("GDSV 加载失败:")
         for error in data.get_errors():
             push_error("  " + error)
         return null
 
     # 4. 检查数据完整性
     if data.get_row_count() == 0:
-        push_warning("CSV 文件为空或没有数据行")
+        push_warning("GDSV 文件为空或没有数据行")
 
     # 5. 检查警告
     if data.has_warnings():
         for warning in data.get_warnings():
-            print("CSV 警告: " + warning)
+            print("GDSV 警告: " + warning)
 
     return data
 
 
 ## 带重试的文件加载
-func load_csv_with_retry(file_path: String, max_retries: int = 3) -> CSVResource:
+func load_gdsv_with_retry(file_path: String, max_retries: int = 3) -> GDSVResource:
     for attempt in range(max_retries):
-        var data := CSVLoader.new().load_file(file_path).parse_all()
+        var data := GDSVLoader.new().load_file(file_path).parse_all()
 
         if not data.has_errors():
             return data
@@ -1188,7 +1188,7 @@ func load_csv_with_retry(file_path: String, max_retries: int = 3) -> CSVResource
         print("加载失败（尝试 %d/%d）: %s" % [attempt + 1, max_retries, file_path])
 
         # 清除缓存重试
-        CSVLoader.clear_cache()
+        GDSVLoader.clear_cache()
         await get_tree().create_timer(0.5).timeout
 
     push_error("多次重试后仍无法加载: " + file_path)
@@ -1199,11 +1199,11 @@ func load_csv_with_retry(file_path: String, max_retries: int = 3) -> CSVResource
 
 ## 性能优化建议
 
-1. **使用缓存**: 对于频繁访问的 CSV 文件，`CSVLoader` 会自动缓存
+1. **使用缓存**: 对于频繁访问的 GDSV/CSV 文件，`GDSVLoader` 会自动缓存
 2. **流式读取大文件**: 文件超过 10MB 时使用 `stream()` 方法
 3. **预定义 Schema**: 将 Schema 保存为资源文件，避免运行时创建
-4. **批量操作**: 使用 `CSVTableData.BatchSetCells()` 而非多次单独设置
-5. **限制搜索列**: 使用 `CSVSearchEngine` 时指定列索引，避免全表搜索
+4. **批量操作**: 使用 `GDSVTableData.BatchSetCells()` 而非多次单独设置
+5. **限制搜索列**: 使用 `GDSVSearchEngine` 时指定列索引，避免全表搜索
 
 ---
 

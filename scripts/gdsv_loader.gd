@@ -3,6 +3,8 @@ class_name GDSVLoader
 extends RefCounted
 
 const _GODOTSV_PLUGIN_SCRIPT := preload("res://addons/GodotSV/scripts/plugin.gd")
+const _GDSV_STREAM_READER_SCRIPT := preload("res://addons/GodotSV/scripts/gdsv_stream_reader.gd")
+
 
 ## GDSV 文件加载器，提供 GDSV 文件的读取、解析和转换功能
 
@@ -63,11 +65,11 @@ func _init() -> void:
 ## 加载 GDSV 文件
 func load_file(file_path: String) -> GDSVLoader:
 	_file_path = file_path
-	
+
 	if not FileAccess.file_exists(file_path):
 		_errors.append("文件不存在: %s" % _get_display_path(file_path))
 		return self
-	
+
 	return self
 
 
@@ -122,32 +124,32 @@ func parse_all() -> GDSVResource:
 	var gdsv_resource: GDSVResource = GDSVResource.new()
 	gdsv_resource.has_header = _has_header
 	gdsv_resource.delimiter = _delimiter
-	
+
 	# 检查文件路径是否有效
 	if _file_path.is_empty():
 		gdsv_resource.add_error("未设置文件路径，请先调用 load_file()")
 		return gdsv_resource
-	
+
 	# 检查缓存
 	if _cache.has(_file_path):
 		_update_cache_order(_file_path)
 		return _cache[_file_path]
-	
+
 	# 读取文件内容
 	var file_content := _read_file_content()
 	if file_content.is_empty():
 		gdsv_resource.add_error("文件内容为空或读取失败: %s" % _get_display_path(_file_path))
 		return gdsv_resource
-	
+
 	# 解析 GDSV 数据
 	var lines := file_content.split("\n")
-	
+
 	# 解析表头
 	var header_row: PackedStringArray
 	if _has_header and lines.size() > 0:
-		header_row = _parse_csv_line(lines[0])
+		header_row = _parse_gdsv_line(lines[0])
 		lines = lines.slice(1) # 移除表头行
-		
+
 		# 检查重复列名
 		_check_duplicate_headers(header_row)
 
@@ -173,12 +175,12 @@ func parse_all() -> GDSVResource:
 			for error in schema_errors:
 				gdsv_resource.add_error(error)
 				_errors.append(error)
-	
+
 	gdsv_resource.headers = header_row
-	
+
 	# 建立字段名到列索引的映射
 	var header_indices := _build_header_indices(header_row)
-	
+
 	# 解析数据行
 	for i in range(lines.size()):
 		var line := lines[i].strip_edges()
@@ -188,7 +190,7 @@ func parse_all() -> GDSVResource:
 			continue
 
 		_current_row = i + 2 # +2 因为跳过表头且从1开始计数
-		var row_data := _parse_csv_line(line)
+		var row_data := _parse_gdsv_line(line)
 		gdsv_resource.add_raw_row(row_data)
 
 		# 转换为字典格式，返回 [dict, extended_header, extended_indices]
@@ -226,48 +228,48 @@ func parse_all() -> GDSVResource:
 				continue
 
 		gdsv_resource.add_row(dict_row)
-	
+
 	# 更新统计信息
 	gdsv_resource.total_rows = _total_rows
 	gdsv_resource.successful_rows = _successful_rows
 	gdsv_resource.failed_rows = _failed_rows
-	
+
 	# 添加错误和警告到资源
 	for error in _errors:
 		gdsv_resource.add_error(error)
-	
+
 	for warning in _warnings:
 		gdsv_resource.add_warning(warning)
-	
+
 	# 缓存结果
 	_add_to_cache(_file_path, gdsv_resource)
-	
+
 	# 输出解析统计
 	_log_statistics(gdsv_resource)
-	
+
 	return gdsv_resource
 
 
 ## 创建流式读取器
-func stream() -> GDSVStreamReader:
+func stream() -> RefCounted:
 	if Engine.is_editor_hint():
 		# 被动触发旧 *.translation 清理：仅在真正发生读取时执行，避免编辑器启动扫描期文件锁冲突。
 		_GODOTSV_PLUGIN_SCRIPT.request_legacy_translation_cleanup()
 
-	var reader: GDSVStreamReader = GDSVStreamReader.new(_file_path, _has_header, _delimiter)
-	
+	var reader := _GDSV_STREAM_READER_SCRIPT.new(_file_path, _has_header, _delimiter)
+
 	# 应用字段类型
 	for field_name in _field_types:
 		reader.set_field_type(field_name, _field_types[field_name])
-	
+
 	# 应用默认值
 	for field_name in _default_values:
 		reader.set_default_value(field_name, _default_values[field_name])
-	
+
 	# 应用 Schema
 	if _schema != null:
 		reader.set_schema(_schema)
-	
+
 	return reader
 
 
@@ -278,28 +280,28 @@ func _read_file_content() -> String:
 		var error_str := "无法打开文件: %s (错误码: %d)" % [_get_display_path(_file_path), FileAccess.get_open_error()]
 		_errors.append(error_str)
 		return ""
-	
+
 	var content := file.get_as_text()
 	file.close()
-	
+
 	# 处理 BOM（字节顺序标记）
 	if content.length() >= 1:
 		if content.unicode_at(0) == 0xFEFF: # UTF-8 BOM
 			content = content.substr(1)
-	
+
 	return content
 
 
-## 解析 CSV 行（支持 RFC 4180 标准）
-func _parse_csv_line(line: String) -> PackedStringArray:
+## 解析 GDSV 行（支持 RFC 4180 标准）
+func _parse_gdsv_line(line: String) -> PackedStringArray:
 	var result := PackedStringArray()
 	var current := ""
 	var in_quotes := false
-	
+
 	var i := 0
 	while i < line.length():
 		var char := line[i]
-		
+
 		if char == '"':
 			if in_quotes and i < line.length() - 1 and line[i + 1] == '"':
 				# 两个引号表示一个引号字符
@@ -309,16 +311,16 @@ func _parse_csv_line(line: String) -> PackedStringArray:
 			in_quotes = not in_quotes
 			i += 1
 			continue
-		
+
 		if char == _delimiter and not in_quotes:
 			result.append(current.strip_edges())
 			current = ""
 			i += 1
 			continue
-		
+
 		current += char
 		i += 1
-	
+
 	result.append(current.strip_edges())
 	return result
 
@@ -335,7 +337,7 @@ func _build_header_indices(header_row: PackedStringArray) -> Dictionary:
 ## 转换行数据为字典格式，同时处理多余字段并扩展表头
 func _convert_row_to_dict(row: PackedStringArray, header_indices: Dictionary, row_index: int) -> Array:
 	var dict := {}
-	
+
 	# 处理已知列
 	for field_name in header_indices:
 		var col_index: int = header_indices[field_name] as int
@@ -343,34 +345,34 @@ func _convert_row_to_dict(row: PackedStringArray, header_indices: Dictionary, ro
 			var value := row[col_index].strip_edges()
 			if not value.is_empty():
 				dict[field_name] = value
-	
+
 	_total_rows += 1
 	_successful_rows += 1
-	
+
 	# 处理多余字段，自动扩展表头
 	var extended_header := PackedStringArray()
 	var extended_indices := {}
-	
+
 	if row.size() > header_indices.size():
 		var existing_col_names := header_indices.keys()
 		var start_index := header_indices.size()
-		
+
 		for i in range(start_index, row.size()):
 			var col_name := "Column_" + str(i + 1)
 			var suffix := 1
-			
+
 			# 确保列名唯一（避免与已存在列名冲突）
 			while col_name in existing_col_names or col_name in extended_indices:
 				col_name = "Column_" + str(i + 1) + "_" + str(suffix)
 				suffix += 1
-			
+
 			var value := row[i].strip_edges()
 			if not value.is_empty():
 				dict[col_name] = value
-			
+
 			extended_header.append(col_name)
 			extended_indices[col_name] = i
-	
+
 	return [dict, extended_header, extended_indices]
 
 
@@ -442,7 +444,7 @@ func _apply_default_values(row_data: Dictionary) -> void:
 	for field_name in _default_values:
 		if not row_data.has(field_name) or row_data[field_name] == null:
 			row_data[field_name] = _default_values[field_name]
-	
+
 	# 应用类型默认值
 	for field_name in _field_types:
 		if not row_data.has(field_name) or row_data[field_name] == null:
@@ -527,9 +529,9 @@ func _add_to_cache(path: String, resource: GDSVResource) -> void:
 			var oldest_path: String = _cache_order[0]
 			_cache.erase(oldest_path)
 			_cache_order.remove_at(0)
-	
+
 	_cache[path] = resource
-	
+
 	# 更新缓存顺序
 	if path in _cache_order:
 		_cache_order.erase(path)
@@ -549,26 +551,26 @@ func _get_display_path(path: String) -> String:
 		return path
 	if path.begins_with("user://"):
 		return path
-	
+
 	# 尝试转换为相对路径
 	var res_path := ProjectSettings.localize_path(path)
 	if res_path.begins_with("res://"):
 		return res_path
-	
+
 	return path
 
 
 ## 输出解析统计信息
 func _log_statistics(resource: GDSVResource) -> void:
 	var stats := resource.get_statistics()
-	
+
 	# 尝试使用 GLog（如果存在）
 	if ClassDB.class_exists("GLog"):
 		var glog = Engine.get_singleton("GLog")
 		if glog != null:
 			glog.info(stats)
 			return
-	
+
 	# 回退到 Godot 内置日志
 	if resource.has_errors():
 		push_error(stats)

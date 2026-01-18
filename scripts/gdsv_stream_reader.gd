@@ -1,4 +1,4 @@
-class_name GDSVStreamReader
+class_name GDSVStreamReaderGD
 extends RefCounted
 
 ## GDSV 流式读取器，用于逐行读取大型 GDSV 文件，减少内存占用
@@ -85,7 +85,7 @@ func next() -> Dictionary:
 	if not _header_read and _has_header:
 		_read_header()
 		_header_read = true
-		return {}  # 返回空字典表示表头已读取
+		return {} # 返回空字典表示表头已读取
 	
 	# 读取数据行
 	while not _file.eof_reached():
@@ -123,19 +123,19 @@ func _read_header() -> void:
 		if line.is_empty():
 			continue
 		
-		_headers = _parse_csv_line(line)
+		_headers = _parse_gdsv_line(line)
 		break
 
 
 ## 解析缓冲的行
 func _parse_buffered_line() -> Dictionary:
 	var line := _buffer
-	_buffer = ""  # 清空缓冲区
+	_buffer = "" # 清空缓冲区
 	
 	if line.strip_edges().is_empty():
 		return {}
 	
-	var row := _parse_csv_line(line)
+	var row := _parse_gdsv_line(line)
 	if row.is_empty():
 		return {}
 	
@@ -159,8 +159,8 @@ func _parse_buffered_line() -> Dictionary:
 	return dict
 
 
-## 解析 CSV 行
-func _parse_csv_line(line: String) -> PackedStringArray:
+## 解析 GDSV 行
+func _parse_gdsv_line(line: String) -> PackedStringArray:
 	var result := PackedStringArray()
 	var current := ""
 	var in_quotes := false
