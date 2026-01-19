@@ -1051,10 +1051,11 @@ func _ensure_search_dialog() -> void:
 	_search_dialog = AcceptDialog.new()
 	_search_dialog.title = "查询"
 	_search_dialog.min_size = Vector2(420, 0)
-	_search_dialog.get_ok_button().text = "查询"
-	_search_dialog.confirmed.connect(_on_search_dialog_confirmed)
+	_search_dialog.get_ok_button().hide()
+	_search_dialog.add_button("关闭", false, "close")
 	_search_dialog.add_button("上一条", false, "prev")
 	_search_dialog.add_button("下一条", false, "next")
+	_search_dialog.add_button("查询", false, "search")
 	_search_dialog.custom_action.connect(_on_search_dialog_action)
 
 	var vbox := VBoxContainer.new()
@@ -1105,6 +1106,14 @@ func _on_search_dialog_confirmed() -> void:
 
 
 func _on_search_dialog_action(action: String) -> void:
+	if action == "search":
+		_on_search_dialog_confirmed()
+		return
+
+	if action == "close":
+		_search_dialog.hide()
+		return
+
 	if _search_results.is_empty():
 		_update_search_dialog_status("没有匹配结果")
 		return

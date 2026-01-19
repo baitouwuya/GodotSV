@@ -6,11 +6,12 @@ extends Node
 
 ## 搜索匹配模式枚举
 enum MatchMode {
-	MATCH_EXACT,
-	MATCH_CONTAINS,
-	MATCH_STARTS_WITH,
-	MATCH_ENDS_WITH,
-	MATCH_REGEX
+	MATCH_CONTAINS = 0,
+	MATCH_NOT_CONTAINS = 1,
+	MATCH_EQUALS = 2,
+	MATCH_NOT_EQUALS = 3,
+	MATCH_STARTS_WITH = 4,
+	MATCH_ENDS_WITH = 5
 }
 #region 信号 Signals
 signal data_changed(change_type: String, details: Dictionary)
