@@ -157,13 +157,8 @@ func get_type_definitions() -> Array:
 func get_all_rows() -> Array[PackedStringArray]:
 	if not data_processor:
 		return []
-
-	# 返回对外快照：避免调用方修改返回值影响内部数据
-	var rows := data_processor.get_all_rows()
-	var snapshot: Array[PackedStringArray] = []
-	for row in rows:
-		snapshot.append((row as PackedStringArray).duplicate())
-	return snapshot
+	# PackedStringArray 是值类型，赋值自动复制，无需 duplicate()
+	return data_processor.get_all_rows()
 
 
 ## 兼容旧接口：返回与 `get_all_rows()` 等价的数据快照。

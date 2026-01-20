@@ -24,6 +24,9 @@ const ERROR_SEARCH_FAILED = "搜索失败"
 ## 是否自动去除单元格首尾空格
 @export var auto_trim_whitespace: bool = true
 
+## 加载时是否执行全表 trim（大表可能非常慢）
+@export var trim_on_load: bool = true
+
 ## 默认 GDSV 分隔符
 @export var default_delimiter: String = ","
 #endregion
@@ -98,7 +101,7 @@ func reset() -> void:
 
 #region 文件加载功能 File Loading Features
 ## 加载 GDSV 文件
-func load_gdsv_file(file_path: String) -> bool:
+func load_gdsv_file(file_path: String, options: Dictionary = {}) -> bool:
 	_reset_error_state()
 	
 	if not FileAccess.file_exists(file_path):
@@ -124,11 +127,11 @@ func load_gdsv_file(file_path: String) -> bool:
 	var content := file.get_as_text()
 	file.close()
 	
-	return load_gdsv_content(content, file_path)
+	return load_gdsv_content(content, file_path, options)
 
 
 ## 加载 GDSV 内容字符串
-func load_gdsv_content(content: String, file_path: String = "") -> bool:
+func load_gdsv_content(content: String, file_path: String = "", options: Dictionary = {}) -> bool:
 	_reset_error_state()
 	
 	if content.is_empty():
@@ -171,8 +174,9 @@ func load_gdsv_content(content: String, file_path: String = "") -> bool:
 			rows.append(row)
 	_table_data.initialize(rows, _cleaned_header)
 	_normalize_table_shape()
-	
-	if auto_trim_whitespace:
+
+	var should_trim_on_load: bool = bool(options.get("trim_on_load", trim_on_load))
+	if auto_trim_whitespace and should_trim_on_load:
 		_trim_all_cells()
 	
 	last_file_path = file_path
@@ -291,7 +295,7 @@ func import_tsv_file(file_path: String) -> bool:
 	# 将TSV转换为GDSV格式
 	var gdsv_content := _tsv_to_gdsv(content)
 
-	return load_gdsv_content(gdsv_content, file_path)
+	return load_gdsv_content(gdsv_content, file_path, {"trim_on_load": false})
 
 
 ## TSV 转换为 GDSV
@@ -393,7 +397,9 @@ func import_json_file(file_path: String) -> bool:
 	_table_data.initialize(rows, _cleaned_header)
 	_normalize_table_shape()
 
-	if auto_trim_whitespace:
+	# 性能优先：导入路径默认不做全表 trim（需要的话由调用方显式执行）
+	var should_trim_on_load: bool = bool({}.get("trim_on_load", trim_on_load))
+	if auto_trim_whitespace and should_trim_on_load:
 		_trim_all_cells()
 
 	last_file_path = file_path
@@ -1048,6 +1054,18 @@ func filter_rows(filter_text: String, case_sensitive: bool = false, match_mode: 
 	return filtered
 
 
+## 过滤行（P0最优路径）：直接在 C++ TableData 内部过滤
+## 说明：与 `filter_rows()` 的区别是：不导出所有行到 GDScript，避免跨边界和数组构造开销。
+func filter_rows_in_table(filter_text: String, case_sensitive: bool = false, match_mode: int = 0, filter_column: int = -1) -> PackedInt32Array:
+	_reset_error_state()
+	
+	if _table_data == null:
+		return PackedInt32Array()
+	
+	var filtered: PackedInt32Array = _table_data.filter_rows_in_table(filter_text, case_sensitive, match_mode, filter_column)
+	return filtered
+
+
 ## 检查匹配的辅助函数
 func _check_match(cell_value: String, search_text: String, case_sensitive: bool, match_mode: int) -> bool:
 	if case_sensitive:
@@ -1083,6 +1101,11 @@ func _set_error(error_message: String) -> void:
 
 ## 去除所有单元格的首尾空格
 func _trim_all_cells() -> void:
+	# 优先走 C++ 内部实现（如不存在该接口则回退到旧方案）
+	if _table_data and _table_data.has_method("trim_all_cells"):
+		_table_data.trim_all_cells()
+		return
+
 	var rows: Array[PackedStringArray] = _get_all_rows_internal()
 	var trim_cells: Array = []
 	
