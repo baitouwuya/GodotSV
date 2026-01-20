@@ -1,5 +1,7 @@
 # GodotSV
 
+<img src="./GodotSV.png" width="160" alt="GodotSV">
+
 Godot Data Separated Values（GDSV）高性能表格数据插件。
 
 ## 功能概览

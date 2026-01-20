@@ -110,6 +110,14 @@ var _search_line_edit: LineEdit
 ## 替换框
 var _replace_line_edit: LineEdit
 
+## 搜索对话框
+var _search_dialog: AcceptDialog
+var _search_dialog_line_edit: LineEdit
+var _search_dialog_case_checkbox: CheckBox
+var _search_dialog_regex_checkbox: CheckBox
+var _search_dialog_status_label: Label
+
+
 ## 搜索结果列表
 var _search_results: Array[Dictionary] = []
 
@@ -182,7 +190,7 @@ func _initialize_data_components() -> void:
 	_ui_style_manager = UIStyleManager.new()
 	_error_handler = ErrorHandler.new()
 	_config_manager = ConfigManager.new()
-	
+
 	_data_model.set_data_processor(_data_processor)
 	_state_manager.set_data_model(_data_model)
 	_schema_manager.set_data_processor(_data_processor)
@@ -193,20 +201,24 @@ func _initialize_data_components() -> void:
 
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
+
 	# 添加管理器到场景树
 	add_child(_schema_manager)
 	add_child(_validation_manager)
-	
+
 	# 创建主容器
 	var main_container := VBoxContainer.new()
 	main_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(main_container)
-	
+
 	# 创建工具栏
 	toolbar = _create_toolbar()
 	main_container.add_child(toolbar)
-	
+
+	# 创建搜索弹窗
+	_ensure_search_dialog()
+
+
 	# 创建标签页容器
 	_tab_container = TabContainer.new()
 	_tab_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -237,7 +249,7 @@ func _build_ui() -> void:
 	var status_sep := HSeparator.new()
 	status_sep.custom_minimum_size.y = 2
 	main_container.add_child(status_sep)
-	
+
 	# 创建状态栏
 	status_bar = _create_status_bar()
 	main_container.add_child(status_bar)
@@ -249,11 +261,11 @@ func _connect_signals() -> void:
 	_data_processor.validation_completed.connect(_on_validation_completed)
 	_state_manager.state_changed.connect(_on_state_changed)
 	_state_manager.file_saved.connect(_on_state_manager_file_saved)
-	
+
 	# 错误处理信号
 	_error_handler.error_occurred.connect(_on_error_occurred)
 	_error_handler.warning_occurred.connect(_on_warning_occurred)
-	
+
 	# 配置变化信号
 	_config_manager.config_changed.connect(_on_config_changed)
 	_config_manager.config_loaded.connect(_on_config_loaded)
@@ -271,17 +283,17 @@ func _configure_auto_save() -> void:
 func _create_toolbar() -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 5)
-	
+
 	# 保存按钮
 	var save_btn := Button.new()
 	save_btn.text = "保存"
 	save_btn.tooltip_text = "保存当前文件 (Ctrl+S)"
 	save_btn.pressed.connect(_on_save_pressed)
 	hbox.add_child(save_btn)
-	
+
 	# 分隔符（字段/Schema 分组）
 	hbox.add_child(VSeparator.new())
-	
+
 	# 加载Schema按钮
 	var schema_btn := Button.new()
 	schema_btn.text = "加载Schema"
@@ -289,71 +301,71 @@ func _create_toolbar() -> HBoxContainer:
 	schema_btn.pressed.connect(_on_load_schema_pressed)
 	hbox.add_child(schema_btn)
 	hbox.add_child(VSeparator.new())
-	
+
 	# 搜索按钮
 	var search_btn := Button.new()
 	search_btn.text = "搜索"
 	search_btn.tooltip_text = "搜索内容 (Ctrl+F)"
 	search_btn.pressed.connect(_on_search_pressed)
 	hbox.add_child(search_btn)
-	
+
 	# 分隔符
 	var separator1 := VSeparator.new()
 	hbox.add_child(separator1)
-	
+
 	# 撤销按钮
 	var undo_btn := Button.new()
 	undo_btn.text = "撤销"
 	undo_btn.tooltip_text = "撤销 (Ctrl+Z)"
 	undo_btn.pressed.connect(_on_undo_pressed)
 	hbox.add_child(undo_btn)
-	
+
 	# 重做按钮
 	var redo_btn := Button.new()
 	redo_btn.text = "重做"
 	redo_btn.tooltip_text = "重做 (Ctrl+Y)"
 	redo_btn.pressed.connect(_on_redo_pressed)
 	hbox.add_child(redo_btn)
-	
+
 	# 分隔符
 	var separator2 := VSeparator.new()
 	hbox.add_child(separator2)
-	
+
 	# 导入按钮
 	var import_btn := Button.new()
 	import_btn.text = "导入"
 	import_btn.tooltip_text = "导入文件 (TSV, JSON)"
 	import_btn.pressed.connect(_on_import_pressed)
 	hbox.add_child(import_btn)
-	
+
 	# 导出按钮
 	var export_btn := Button.new()
 	export_btn.text = "导出"
 	export_btn.tooltip_text = "导出文件 (TSV, JSON)"
 	export_btn.pressed.connect(_on_export_pressed)
 	hbox.add_child(export_btn)
-	
+
 	# 设置按钮
 	var settings_btn := Button.new()
 	settings_btn.text = "设置"
 	settings_btn.tooltip_text = "打开设置"
 	settings_btn.pressed.connect(_on_settings_pressed)
 	hbox.add_child(settings_btn)
-	
+
 	# 分隔符
 	var separator3 := VSeparator.new()
 	hbox.add_child(separator3)
-	
+
 	# 验证按钮
 	var validate_btn := Button.new()
 	validate_btn.text = "验证"
 	validate_btn.tooltip_text = "验证数据"
 	validate_btn.pressed.connect(_on_validate_pressed)
 	hbox.add_child(validate_btn)
-	
+
 	# 弹性空间
 	hbox.add_child(Control.new())
-	
+
 	return hbox
 
 
@@ -362,7 +374,7 @@ func _create_status_bar() -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 	hbox.custom_minimum_size.y = 30
-	
+
 	# 文件状态容器
 	var file_status_container := _create_status_item()
 	var file_status_icon := TextureRect.new()
@@ -370,17 +382,17 @@ func _create_status_bar() -> HBoxContainer:
 	file_status_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	file_status_icon.custom_minimum_size = Vector2(16, 16)
 	file_status_container.add_child(file_status_icon)
-	
+
 	_file_status_label = Label.new()
 	_file_status_label.name = "FileStatusLabel"
 	_file_status_label.text = "未打开文件"
 	file_status_container.add_child(_file_status_label)
-	
+
 	hbox.add_child(file_status_container)
-	
+
 	# 分隔符
 	hbox.add_child(VSeparator.new())
-	
+
 	# 验证状态容器
 	var validation_container := _create_status_item()
 	var validation_icon := TextureRect.new()
@@ -388,29 +400,29 @@ func _create_status_bar() -> HBoxContainer:
 	validation_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	validation_icon.custom_minimum_size = Vector2(16, 16)
 	validation_container.add_child(validation_icon)
-	
+
 	_validation_label = Label.new()
 	_validation_label.name = "ValidationLabel"
 	_validation_label.text = "验证状态: 未验证"
 	validation_container.add_child(_validation_label)
-	
+
 	hbox.add_child(validation_container)
-	
+
 	# 弹性空间
 	hbox.add_child(Control.new())
-	
+
 	# 行数统计标签
 	_row_count_label = Label.new()
 	_row_count_label.name = "RowCountLabel"
 	_row_count_label.text = "行数: 0"
 	hbox.add_child(_row_count_label)
-	
+
 	# 列数统计标签
 	_col_count_label = Label.new()
 	_col_count_label.name = "ColCountLabel"
 	_col_count_label.text = "列数: 0"
 	hbox.add_child(_col_count_label)
-	
+
 	return hbox
 
 
@@ -431,9 +443,9 @@ func _create_cell_input_panel() -> PanelContainer:
 	_cell_input_debounce_timer.one_shot = true
 	_cell_input_debounce_timer.wait_time = 0.05
 	_cell_input_debounce_timer.timeout.connect(func() -> void:
-		_cell_input_live_applying = true
+		_cell_input_live_applying=true
 		_apply_cell_input_value()
-		_cell_input_live_applying = false
+		_cell_input_live_applying=false
 	)
 	panel.add_child(_cell_input_debounce_timer)
 
@@ -491,9 +503,9 @@ func _create_cell_input_panel() -> PanelContainer:
 	_cell_input_number.allow_lesser = true
 	_cell_input_number.visible = false
 	_cell_input_number.value_changed.connect(func(_v: float) -> void:
-		_cell_input_live_applying = true
+		_cell_input_live_applying=true
 		_apply_cell_input_value()
-		_cell_input_live_applying = false
+		_cell_input_live_applying=false
 	)
 	hbox.add_child(_cell_input_number)
 
@@ -501,18 +513,18 @@ func _create_cell_input_panel() -> PanelContainer:
 	_cell_input_bool.text = "True"
 	_cell_input_bool.visible = false
 	_cell_input_bool.toggled.connect(func(_p: bool) -> void:
-		_cell_input_live_applying = true
+		_cell_input_live_applying=true
 		_apply_cell_input_value()
-		_cell_input_live_applying = false
+		_cell_input_live_applying=false
 	)
 	hbox.add_child(_cell_input_bool)
 
 	_cell_input_enum = OptionButton.new()
 	_cell_input_enum.visible = false
 	_cell_input_enum.item_selected.connect(func(_idx: int) -> void:
-		_cell_input_live_applying = true
+		_cell_input_live_applying=true
 		_apply_cell_input_value()
-		_cell_input_live_applying = false
+		_cell_input_live_applying=false
 	)
 	hbox.add_child(_cell_input_enum)
 
@@ -535,9 +547,9 @@ func _create_cell_input_panel() -> PanelContainer:
 		spin.allow_lesser = true
 		spin.custom_minimum_size.x = 90
 		spin.value_changed.connect(func(_v: float) -> void:
-			_cell_input_live_applying = true
+			_cell_input_live_applying=true
 			_apply_cell_input_value()
-			_cell_input_live_applying = false
+			_cell_input_live_applying=false
 		)
 		_cell_input_vec_container.add_child(spin)
 		_cell_input_vec_spins.append(spin)
@@ -548,9 +560,9 @@ func _create_cell_input_panel() -> PanelContainer:
 	_cell_input_color.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cell_input_color.visible = false
 	_cell_input_color.color_changed.connect(func(_c: Color) -> void:
-		_cell_input_live_applying = true
+		_cell_input_live_applying=true
 		_apply_cell_input_value()
-		_cell_input_live_applying = false
+		_cell_input_live_applying=false
 	)
 	hbox.add_child(_cell_input_color)
 
@@ -685,11 +697,11 @@ func load_file(file_path: String) -> bool:
 func save_current_file() -> bool:
 	if _current_tab_index < 0 or _current_tab_index >= _tab_container.get_tab_count():
 		return false
-	
+
 	var tab_control: Control = _tab_container.get_tab_control(_current_tab_index)
 	if not tab_control or not tab_control.has_method("get_file_path"):
 		return false
-	
+
 	var file_path: String = tab_control.get_file_path()
 	return save_file(file_path)
 
@@ -732,7 +744,6 @@ func save_file(file_path: String) -> bool:
 			_tab_container.set_tab_title(tab_index, file_path.get_file())
 
 	return success
-
 
 
 ## 关闭文件
@@ -842,9 +853,9 @@ func _show_external_modification_warning() -> void:
 	dialog.dialog_text = "文件已被外部程序修改，是否重新加载？\n\n注意：重新加载将丢失所有未保存的修改。"
 	dialog.get_ok_button().text = "重新加载"
 	dialog.add_button("取消", true)
-	
+
 	dialog.confirmed.connect(_on_reload_confirmed)
-	
+
 	add_child(dialog)
 	dialog.popup_centered()
 
@@ -879,12 +890,12 @@ func _create_tab_control(file_path: String, tab_model: GDSVDataModel, tab_proces
 	tab_control._data_model = tab_model
 	tab_control._data_processor = tab_processor
 	tab_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
+
 	# 添加表格视图
 	var table_view := _create_table_view(tab_model, tab_processor)
 	tab_control._table_view = table_view
 	tab_control.add_child(table_view)
-	
+
 	return tab_control
 
 
@@ -897,7 +908,7 @@ func _create_table_view(tab_model: GDSVDataModel, tab_processor: GDSVDataProcess
 	table_view.set_validation_manager(_validation_manager)
 	table_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	table_view.enable_double_click_editing = false
-	
+
 	if _config_manager:
 		table_view.show_line_numbers = _config_manager.get_show_row_numbers()
 		table_view.enable_virtual_scrolling = _config_manager.get_enable_virtual_scroll()
@@ -916,7 +927,7 @@ func _create_table_view(tab_model: GDSVDataModel, tab_processor: GDSVDataProcess
 		table_view.fields_settings_requested.connect(_on_fields_settings_requested)
 	if not table_view.cell_selected.is_connected(_on_table_cell_selected):
 		table_view.cell_selected.connect(_on_table_cell_selected)
-	
+
 	return table_view
 
 
@@ -954,7 +965,7 @@ func _get_tab_index_by_binding_key(binding_key: String) -> int:
 ## 标签页切换回调
 func _on_tab_changed(index: int) -> void:
 	_current_tab_index = index
-	
+
 	if index >= 0 and index < _tab_container.get_tab_count():
 		var tab_control := _tab_container.get_tab_control(index)
 		if tab_control:
@@ -965,7 +976,7 @@ func _on_tab_changed(index: int) -> void:
 				if m:
 					_data_model = m
 					_state_manager.set_data_model(_data_model)
-			
+
 			if tab_control.has_method("get_data_processor"):
 				var p: GDSVDataProcessor = tab_control.get_data_processor()
 				if p:
@@ -973,7 +984,7 @@ func _on_tab_changed(index: int) -> void:
 					_schema_manager.set_data_processor(_data_processor)
 					_validation_manager.set_data_processor(_data_processor)
 					_data_model.set_data_processor(_data_processor)
-			
+
 			if tab_control.has_method("get_file_path"):
 				var file_path: String = tab_control.get_file_path()
 				_state_manager.set_file_path(file_path)
@@ -982,7 +993,7 @@ func _on_tab_changed(index: int) -> void:
 				if _schema_manager:
 					_schema_manager.unload_schema()
 				_update_status_bar()
-			
+
 			# 主动刷新一次，避免 TabContainer 切换时 TableView 布局/可见行计算没更新
 			if tab_control.has_method("get_table_view"):
 				var tv = tab_control.get_table_view()
@@ -999,7 +1010,7 @@ func _on_tab_changed(index: int) -> void:
 func load_schema(schema_path: String) -> bool:
 	if not _schema_manager:
 		return false
-	
+
 	return _schema_manager.load_schema(schema_path)
 
 
@@ -1007,9 +1018,9 @@ func load_schema(schema_path: String) -> bool:
 func validate_current_file() -> void:
 	if _current_tab_index < 0:
 		return
-	
+
 	validation_started.emit()
-	
+
 	if _validation_manager:
 		var error_count := _validation_manager.validate_table()
 		_update_status_bar()
@@ -1024,14 +1035,157 @@ func show_validation_errors() -> void:
 #region 搜索和替换功能 Search and Replace Features
 ## 搜索文本
 func search_text(search_text: String) -> void:
-	# TODO: 实现搜索功能
-	print("搜索: ", search_text)
+	_run_search(search_text, false, false)
 
 
 ## 替换文本
 func replace_text(search_text: String, replace_text: String) -> void:
 	# TODO: 实现替换功能
 	print("替换: ", search_text, " -> ", replace_text)
+
+
+func _ensure_search_dialog() -> void:
+	if _search_dialog and is_instance_valid(_search_dialog):
+		return
+
+	_search_dialog = AcceptDialog.new()
+	_search_dialog.title = "查询"
+	_search_dialog.min_size = Vector2(420, 0)
+	_search_dialog.get_ok_button().hide()
+	_search_dialog.add_button("关闭", false, "close")
+	_search_dialog.add_button("上一条", false, "prev")
+	_search_dialog.add_button("下一条", false, "next")
+	_search_dialog.add_button("查询", false, "search")
+	_search_dialog.custom_action.connect(_on_search_dialog_action)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	_search_dialog.add_child(vbox)
+
+	_search_dialog_line_edit = LineEdit.new()
+	_search_dialog_line_edit.placeholder_text = "输入查询内容"
+	_search_dialog_line_edit.text_submitted.connect(func(_text: String) -> void:
+		_on_search_dialog_confirmed()
+	)
+	vbox.add_child(_search_dialog_line_edit)
+
+	var options_row := HBoxContainer.new()
+	options_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(options_row)
+
+	_search_dialog_case_checkbox = CheckBox.new()
+	_search_dialog_case_checkbox.text = "区分大小写"
+	options_row.add_child(_search_dialog_case_checkbox)
+
+	_search_dialog_regex_checkbox = CheckBox.new()
+	_search_dialog_regex_checkbox.text = "正则"
+	options_row.add_child(_search_dialog_regex_checkbox)
+
+	_search_dialog_status_label = Label.new()
+	_search_dialog_status_label.text = ""
+	vbox.add_child(_search_dialog_status_label)
+
+	add_child(_search_dialog)
+
+
+func _show_search_dialog() -> void:
+	_ensure_search_dialog()
+	_search_dialog.popup_centered()
+	if _search_dialog_line_edit:
+		_search_dialog_line_edit.grab_focus()
+
+
+func _on_search_dialog_confirmed() -> void:
+	if not _search_dialog_line_edit:
+		return
+	var text := _search_dialog_line_edit.text.strip_edges()
+	if text.is_empty():
+		_update_search_dialog_status("请输入查询内容")
+		return
+	_run_search(text, _search_dialog_case_checkbox.button_pressed, _search_dialog_regex_checkbox.button_pressed)
+
+
+func _on_search_dialog_action(action: String) -> void:
+	if action == "search":
+		_on_search_dialog_confirmed()
+		return
+
+	if action == "close":
+		_search_dialog.hide()
+		return
+
+	if _search_results.is_empty():
+		_update_search_dialog_status("没有匹配结果")
+		return
+	if action == "prev":
+		_select_search_result(_current_search_index - 1)
+	elif action == "next":
+		_select_search_result(_current_search_index + 1)
+
+
+func _run_search(search_text: String, case_sensitive: bool, use_regex: bool) -> void:
+	if not _data_model:
+		_update_search_dialog_status("未打开文件")
+		return
+	if not _data_processor:
+		_update_search_dialog_status("数据处理器不可用")
+		return
+
+	if use_regex:
+		_search_results = _data_processor.search_regex(search_text)
+	else:
+		_search_results = _data_model.search_text(
+			search_text,
+			case_sensitive,
+			GDSVDataModel.MatchMode.MATCH_CONTAINS
+		)
+
+	if _data_processor.has_error:
+		_update_search_dialog_status(_data_processor.last_error)
+		return
+
+	if _search_results.is_empty():
+		_current_search_index = -1
+		_update_search_dialog_status("未找到匹配")
+		return
+
+	_select_search_result(0)
+	_update_search_dialog_status("匹配 %s 项" % _search_results.size())
+
+
+func _select_search_result(index: int) -> void:
+	if _search_results.is_empty():
+		_current_search_index = -1
+		return
+
+	if index < 0:
+		index = _search_results.size() - 1
+	elif index >= _search_results.size():
+		index = 0
+
+	_current_search_index = index
+	var result: Dictionary = _search_results[index]
+	var row := int(result.get("row", -1))
+	var col := int(result.get("column", -1))
+	if row < 0 or col < 0:
+		_update_search_dialog_status("查询结果无效")
+		return
+
+	var table_view := _get_active_table_view()
+	if table_view and table_view.has_method("_select_cell"):
+		table_view.call("_select_cell", Vector2i(row, col))
+		table_view.queue_redraw()
+	if _state_manager:
+		_state_manager.select_cell(row, col)
+
+	_active_cell = Vector2i(row, col)
+	_refresh_cell_input_from_model()
+	_update_search_dialog_status("结果 %s / %s" % [str(index + 1), str(_search_results.size())])
+
+
+func _update_search_dialog_status(text: String) -> void:
+	if _search_dialog_status_label:
+		_search_dialog_status_label.text = text
 #endregion
 
 #region UI更新功能 UI Update Features
@@ -1045,7 +1199,7 @@ func _update_status_bar() -> void:
 			_file_status_label.text = file_name + modified_mark + readonly_mark
 		else:
 			_file_status_label.text = "未打开文件"
-	
+
 	if _validation_label:
 		if _validation_manager and _validation_manager.has_errors():
 			var error_count := _validation_manager.get_error_count()
@@ -1060,10 +1214,10 @@ func _update_status_bar() -> void:
 			_validation_label.text = text
 		else:
 			_validation_label.text = "验证状态: 无错误"
-	
+
 	if _row_count_label:
 		_row_count_label.text = "行数: " + str(_data_processor.get_row_count())
-	
+
 	if _col_count_label:
 		_col_count_label.text = "列数: " + str(_data_processor.get_column_count())
 #endregion
@@ -1154,7 +1308,7 @@ func _on_import_pressed() -> void:
 func _on_import_file_selected(file_path: String) -> void:
 	var extension := file_path.get_extension().to_lower()
 	var success := false
-	
+
 	match extension:
 		"tsv":
 			success = _data_processor.import_tsv_file(file_path)
@@ -1162,7 +1316,7 @@ func _on_import_file_selected(file_path: String) -> void:
 			success = _data_processor.import_json_file(file_path)
 		_:
 			success = load_file(file_path)
-	
+
 	if success:
 		_state_manager.set_file_path(file_path)
 		_state_manager.mark_file_saved()
@@ -1177,7 +1331,7 @@ func _on_export_pressed() -> void:
 	if not _state_manager.has_file():
 		push_warning("没有打开的文件")
 		return
-	
+
 	var dialog := FileDialog.new()
 	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	dialog.title = "导出文件"
@@ -1231,7 +1385,7 @@ func _on_settings_changed() -> void:
 func _on_export_file_selected(file_path: String) -> void:
 	var extension := file_path.get_extension().to_lower()
 	var success := false
-	
+
 	match extension:
 		"tsv":
 			success = _data_processor.export_tsv_file(file_path)
@@ -1240,7 +1394,7 @@ func _on_export_file_selected(file_path: String) -> void:
 		_:
 			push_error("不支持的导出格式")
 			return
-	
+
 	if success:
 		print("导出成功: ", file_path)
 	else:
@@ -1249,7 +1403,7 @@ func _on_export_file_selected(file_path: String) -> void:
 
 ## 搜索按钮回调
 func _on_search_pressed() -> void:
-	_show_search_bar()
+	_show_search_dialog()
 
 
 ## 撤销按钮回调
@@ -1513,7 +1667,7 @@ func _input(event: InputEvent) -> void:
 
 	if not event is InputEventKey:
 		return
-	
+
 	var key_event := event as InputEventKey
 	if not key_event.pressed:
 		return
@@ -1533,75 +1687,75 @@ func _input(event: InputEvent) -> void:
 			save_current_file()
 			get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + S: 保存文件
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_S:
 		save_current_file()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + C: 复制
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_C:
 		_copy_selection()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + X: 剪切
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_X:
 		_cut_selection()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + V: 粘贴
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_V:
 		_paste_clipboard()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + A: 全选
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_A:
 		_select_all()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Delete: 删除选中内容
 	if key_event.keycode == KEY_DELETE:
 		_delete_selection()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + Z: 撤销
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_Z:
 		if _data_model and _data_model.has_undo():
 			_data_model.undo()
 			get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + Y: 重做
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_Y:
 		if _data_model and _data_model.has_redo():
 			_data_model.redo()
 			get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + F: 搜索
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_F:
 		_show_search_bar()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + H: 替换
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_H:
 		_show_replace_bar()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + Home: 跳转到第一个单元格
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_HOME:
 		_jump_to_cell(0, 0)
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# Ctrl + End: 跳转到最后一个单元格
 	if Input.is_key_pressed(KEY_CTRL) and key_event.keycode == KEY_END:
 		if _data_model:
@@ -1610,7 +1764,7 @@ func _input(event: InputEvent) -> void:
 			_jump_to_cell(last_row, last_col)
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	# F2: 进入编辑模式
 	if key_event.keycode == KEY_F2:
 		_enter_edit_mode()
@@ -1640,22 +1794,22 @@ func _should_handle_shortcuts() -> bool:
 func _copy_selection() -> void:
 	if not _has_selection or not _data_model:
 		return
-	
+
 	var rows := []
 	var start_row := min(_selection.start_row, _selection.end_row)
 	var end_row := max(_selection.start_row, _selection.end_row)
 	var start_col := min(_selection.start_col, _selection.end_col)
 	var end_col := max(_selection.start_col, _selection.end_col)
-	
+
 	for row in range(start_row, end_row + 1):
 		var row_data := []
 		for col in range(start_col, end_col + 1):
 			row_data.append(_data_model.get_cell_value(row, col))
 		rows.append(row_data)
-	
+
 	_clipboard = {"rows": rows, "cols": end_col - start_col + 1}
 	_has_clipboard_data = true
-	
+
 	print("已复制 ", rows.size(), " 行, ", end_col - start_col + 1, " 列")
 
 
@@ -1669,10 +1823,10 @@ func _cut_selection() -> void:
 func _paste_clipboard() -> void:
 	if not _has_clipboard_data or not _data_model:
 		return
-	
+
 	var current_row := -1
 	var current_col := -1
-	
+
 	# 获取当前选中位置或默认为第一个单元格
 	if _has_selection:
 		current_row = min(_selection.start_row, _selection.end_row)
@@ -1680,23 +1834,23 @@ func _paste_clipboard() -> void:
 	else:
 		current_row = 0
 		current_col = 0
-	
+
 	var rows: Array = _clipboard.rows as Array
 	var col_count: int = int(_clipboard.cols)
-	
+
 	for i in range(rows.size()):
 		var row := current_row + i
 		if row >= _data_model.get_row_count():
 			_data_model.insert_row(row, [])
-		
+
 		for j in range(col_count):
 			var col := current_col + j
 			if col >= _data_model.get_column_count():
 				var col_name := "Column_" + str(col + 1)
 				_data_model.insert_column(col, col_name, "")
-			
+
 			_data_model.set_cell_value(row, col, rows[i][j])
-	
+
 	print("已粘贴 ", rows.size(), " 行, ", col_count, " 列")
 
 
@@ -1709,16 +1863,16 @@ func _delete_selection() -> void:
 
 	if not _has_selection or not _data_model:
 		return
-	
+
 	var start_row := min(_selection.start_row, _selection.end_row)
 	var end_row := max(_selection.start_row, _selection.end_row)
 	var start_col := min(_selection.start_col, _selection.end_col)
 	var end_col := max(_selection.start_col, _selection.end_col)
-	
+
 	for row in range(start_row, end_row + 1):
 		for col in range(start_col, end_col + 1):
 			_data_model.set_cell_value(row, col, "")
-	
+
 	print("已删除选中内容")
 
 
@@ -1730,7 +1884,7 @@ func _select_all() -> void:
 	var table_view := _get_active_table_view()
 	if table_view:
 		table_view.select_all()
-	
+
 	_selection = {
 		"start_row": 0,
 		"start_col": 0,
@@ -1738,7 +1892,7 @@ func _select_all() -> void:
 		"end_col": _data_model.get_column_count() - 1
 	}
 	_has_selection = true
-	
+
 	print("已全选: ", _data_model.get_row_count(), " 行, ", _data_model.get_column_count(), " 列")
 #endregion
 
@@ -1766,15 +1920,15 @@ func _show_replace_bar() -> void:
 func _jump_to_cell(row: int, col: int) -> void:
 	if not _data_model:
 		return
-	
+
 	if row < 0 or row >= _data_model.get_row_count():
 		push_error("行索引超出范围")
 		return
-	
+
 	if col < 0 or col >= _data_model.get_column_count():
 		push_error("列索引超出范围")
 		return
-	
+
 	# TODO: 实现跳转到单元格的视觉更新
 	print("跳转到单元格: ", row, ", ", col)
 #endregion
@@ -2025,11 +2179,11 @@ func _open_cell_resource_selector() -> void:
 		if ResourceLoader.exists(path) and ResourceLoader.has_method("get_resource_uid"):
 			var uid_id: int = int(ResourceLoader.get_resource_uid(path))
 			if uid_id != 0:
-				uid_text = ResourceUID.id_to_text(uid_id)
+				uid_text=ResourceUID.id_to_text(uid_id)
 
 		var new_value := path
 		if uid_text.begins_with("uid://"):
-			new_value = uid_text
+			new_value=uid_text
 
 		_apply_value_to_selected_cells(new_value, true)
 		var table_view := _get_active_table_view()
@@ -3462,7 +3616,7 @@ func _parse_color(text: String) -> Color:
 func _enter_edit_mode() -> void:
 	if not _data_model:
 		return
-	
+
 	# TODO: 实现进入编辑模式
 	print("进入编辑模式")
 #endregion
@@ -3484,7 +3638,7 @@ func _on_warning_occurred(warning_data: Dictionary) -> void:
 ## 配置变化时的处理
 func _on_config_changed(config_key: String) -> void:
 	print("配置变化: ", config_key)
-	
+
 	# 根据配置键应用相应的变化
 	match config_key:
 		ConfigManager.KEY_THEME:
@@ -3537,7 +3691,7 @@ func _apply_row_numbers_settings() -> void:
 		return
 
 	_for_each_table_view(func(table_view):
-		table_view.show_line_numbers = _config_manager.get_show_row_numbers()
+		table_view.show_line_numbers=_config_manager.get_show_row_numbers()
 		table_view.refresh()
 	)
 
@@ -3548,7 +3702,7 @@ func _apply_virtual_scroll_settings() -> void:
 		return
 
 	_for_each_table_view(func(table_view):
-		table_view.enable_virtual_scrolling = _config_manager.get_enable_virtual_scroll()
+		table_view.enable_virtual_scrolling=_config_manager.get_enable_virtual_scroll()
 		table_view.refresh()
 	)
 

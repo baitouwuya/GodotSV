@@ -10,7 +10,12 @@
 | `next()` | 读取下一行 |
 | `close()` | 关闭读取器 |
 | `set_field_type(name, type)` | 设置字段类型 |
+| `set_default_value(name, value)` | 设置字段默认值 |
 | `set_schema(schema)` | 设置 Schema |
+| `get_headers()` | 获取表头 |
+| `get_current_line_index()` | 获取当前行号 |
+| `get_errors()` / `get_warnings()` | 获取日志 |
+| `has_errors()` / `has_warnings()` | 检查解析状态 |
 
 ## 示例
 

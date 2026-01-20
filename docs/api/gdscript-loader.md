@@ -11,9 +11,13 @@
 | `with_delimiter(delimiter)` | 设置分隔符 |
 | `with_type(field, type)` | 指定字段类型 |
 | `with_default(field, value)` | 设置字段默认值 |
+| `with_required_fields(fields)` | 设置必需字段列表 |
 | `with_schema(schema)` | 绑定 Schema |
 | `parse_all()` | 解析为 `GDSVResource` |
 | `stream()` | 返回 `GDSVStreamReaderGD` |
+| `get_errors()` / `get_warnings()` | 获取解析日志 |
+| `has_errors()` / `has_warnings()` | 检查解析状态 |
+| `clear_cache()` | 清理全局缓存 |
 
 ## 示例
 

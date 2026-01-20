@@ -6,11 +6,12 @@ extends Node
 
 ## 搜索匹配模式枚举
 enum MatchMode {
-	MATCH_EXACT,
-	MATCH_CONTAINS,
-	MATCH_STARTS_WITH,
-	MATCH_ENDS_WITH,
-	MATCH_REGEX
+	MATCH_CONTAINS = 0,
+	MATCH_NOT_CONTAINS = 1,
+	MATCH_EQUALS = 2,
+	MATCH_NOT_EQUALS = 3,
+	MATCH_STARTS_WITH = 4,
+	MATCH_ENDS_WITH = 5
 }
 #region 信号 Signals
 signal data_changed(change_type: String, details: Dictionary)
@@ -156,13 +157,8 @@ func get_type_definitions() -> Array:
 func get_all_rows() -> Array[PackedStringArray]:
 	if not data_processor:
 		return []
-
-	# 返回对外快照：避免调用方修改返回值影响内部数据
-	var rows := data_processor.get_all_rows()
-	var snapshot: Array[PackedStringArray] = []
-	for row in rows:
-		snapshot.append((row as PackedStringArray).duplicate())
-	return snapshot
+	# PackedStringArray 是值类型，赋值自动复制，无需 duplicate()
+	return data_processor.get_all_rows()
 
 
 ## 兼容旧接口：返回与 `get_all_rows()` 等价的数据快照。

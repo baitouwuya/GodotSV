@@ -6,7 +6,7 @@
 
 - [GDSVParser / GDSVTableData / GDSVTypeConverter](./cpp-core.md)：解析、表格操作、类型转换
 - [GDSVSearchEngine / GDSVDataValidator](./cpp-core.md)：搜索过滤与数据校验
-- [GDSVStreamReader / GDSVTypeAnnotationParser](./cpp-core.md)：流式读取与注解解析
+- [GDSVStreamReader / GDSVTypeAnnotationParser / GDSVColumnParser](./cpp-core.md)：流式读取、注解解析与表头列定义
 
 ## GDScript 高级 API
 

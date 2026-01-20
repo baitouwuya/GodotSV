@@ -2,7 +2,7 @@
 
 ## 安装
 
-1. 将 `addons/GodotSV` 放入项目的 `addons/` 目录。
+1. 将 `GodotSV` 文件夹复制到项目目录下的 `addons/GodotSV` 目录。
 2. 在 Godot 打开：`项目 -> 项目设置 -> 插件`，启用 GodotSV。
 
 ## 最小示例
