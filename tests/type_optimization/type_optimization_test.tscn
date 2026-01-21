@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://d8h4e2f6a5b8c"]
+
+[ext_resource type="Script" path="res://tests/type_optimization/type_optimization_test.gd" id="1_typeopt"]
+
+[node name="TypeOptimizationTest" type="Node"]
+script = ExtResource("1_typeopt")

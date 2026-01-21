@@ -66,6 +66,11 @@ var test_categories: Array[Dictionary] = [
 		"name": "Existing Search Function Tests",
 		"scene_path": "res://tests/search/simple_search_test.tscn",
 		"description": "Current search functionality validation"
+	},
+	{
+		"name": "Type Optimization Tests",
+		"scene_path": "res://tests/type_optimization/type_optimization_test.tscn",
+		"description": "StringName type conversion optimization validation"
 	}
 ]
 #endregion
