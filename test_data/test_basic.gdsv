@@ -1,0 +1,16 @@
+# Basic GDSV test data with fundamental types
+# Generated at: 2026-01-19 18:12:37
+# Row count: 10
+# Format: GDSV
+id:int=1	name:string=	level:int
+33,Emma,27
+77,Emma,48
+81,Alice,4
+97,David,1
+10,Emma,47
+7,Charlie,23
+15,David,20
+29,David,41
+24,Alice,16
+59,Charlie,39
+

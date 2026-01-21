@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b4h3k5l8n2p8"]
+
+[ext_resource type="Script" path="res://tests/profiling/profiling_test.gd" id="1_abcde"]
+
+[node name="ProfilingTest" type="Node"]
+script = ExtResource("1_abcde")

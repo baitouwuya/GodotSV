@@ -1,0 +1,24 @@
+{
+	"fields": [
+		{
+			"default_value": "",
+			"name": "id",
+			"type": "int"
+		},
+		{
+			"default_value": "",
+			"name": "name",
+			"type": "string"
+		},
+		{
+			"default_value": "",
+			"name": "level",
+			"type": "string"
+		},
+		{
+			"name": "description",
+			"required": false,
+			"type": "float"
+		}
+	]
+}

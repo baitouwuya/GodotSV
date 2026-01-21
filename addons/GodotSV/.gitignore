@@ -14,3 +14,12 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# GodotSV plugin binaries / temp files
+bin/
+bin/**
+!bin/*.gdextension
+bin/**/~*
+bin/**/~*.dll
+bin/windows/~*.dll
+*.uid

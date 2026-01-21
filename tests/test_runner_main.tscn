@@ -1,0 +1,322 @@
+[gd_scene load_steps=2 format=3 uid="uid://ct7k2j4n8d5xe"]
+
+[ext_resource type="Script" path="res://tests/test_runner_main.gd" id="1"]
+
+[node name="TestRunnerMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 300
+
+[node name="CategoryPanel" type="Panel" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/CategoryPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+padding_left = 12
+padding_top = 12
+padding_right = 12
+padding_bottom = 12
+
+[node name="ResultsPanel" type="Panel" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabContainer" type="TabContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OverviewTab" type="Control" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatsHBox" type="HBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatCard1" type="PanelContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard1"]
+layout_mode = 2
+theme_override_constants/separation = 4
+padding_left = 12
+padding_top = 12
+padding_right = 12
+padding_bottom = 12
+
+[node name="StatValueLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard1/VBoxContainer"]
+layout_mode = 2
+text = "0"
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="StatNameLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard1/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+text = "测试总数"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="StatCard2" type="PanelContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard2"]
+layout_mode = 2
+theme_override_constants/separation = 4
+padding_left = 12
+padding_top = 12
+padding_right = 12
+padding_bottom = 12
+
+[node name="StatValueLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard2/VBoxContainer"]
+layout_mode = 2
+text = "0"
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.2, 0.8, 0.3, 1)
+
+[node name="StatNameLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard2/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+text = "通过"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="StatCard3" type="PanelContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard3"]
+layout_mode = 2
+theme_override_constants/separation = 4
+padding_left = 12
+padding_top = 12
+padding_right = 12
+padding_bottom = 12
+
+[node name="StatValueLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard3/VBoxContainer"]
+layout_mode = 2
+text = "0"
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.3, 0.3, 1)
+
+[node name="StatNameLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard3/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+text = "失败"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="StatCard4" type="PanelContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard4"]
+layout_mode = 2
+theme_override_constants/separation = 4
+padding_left = 12
+padding_top = 12
+padding_right = 12
+padding_bottom = 12
+
+[node name="StatValueLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard4/VBoxContainer"]
+layout_mode = 2
+text = "0"
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.8, 0.3, 1)
+
+[node name="StatNameLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/StatsHBox/StatCard4/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+text = "跳过"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="HSeparator" type="HSeparator" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+
+[node name="PassRateVBox" type="BoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PassRateLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/PassRateVBox"]
+layout_mode = 2
+text = "0.0%"
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="PassRateBar" type="ProgressBar" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/PassRateVBox"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+show_percentage = false
+
+[node name="StatsLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Tests: 0 | Passed: 0 | Failed: 0 | Rate: 0.0%"
+theme_override_font_sizes/font_size = 14
+
+[node name="HSeparator2" type="HSeparator" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+
+[node name="MetricsHBox" type="HBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TimeLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/MetricsHBox"]
+layout_mode = 2
+text = "耗时: 0.00s"
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="StatusLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer/MetricsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "就绪"
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="HSeparator3" type="HSeparator" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+
+[node name="CategoryStatsLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OverviewTab/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "分类统计"
+theme_override_font_sizes/font_size = 18
+
+[node name="DetailsTab" type="Control" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="ToolbarHBox" type="HBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer"]
+layout_mode = 2
+
+[node name="FilterLabel" type="Label" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+text = "筛选: "
+vertical_alignment = 1
+
+[node name="FilterOption" type="OptionButton" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer/ToolbarHBox"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+item_count = 3
+selected = 0
+popup/item_0/text = "全部"
+popup/item_0/id = 0
+popup/item_1/text = "通过"
+popup/item_1/id = 1
+popup/item_2/text = "失败"
+popup/item_2/id = 2
+
+[node name="SearchEdit" type="LineEdit" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "搜索测试名称..."
+
+[node name="SummaryScroll" type="ScrollContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 2
+
+[node name="SummaryTree" type="Tree" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/DetailsTab/VBoxContainer/SummaryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 3
+hide_root = true
+column_titles_visible = true
+allow_rmb_select = true
+
+[node name="OutputTab" type="Control" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="ToolbarHBox" type="HBoxContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer"]
+layout_mode = 2
+
+[node name="CopyBtn" type="Button" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+text = "复制全部"
+
+[node name="ClearBtn" type="Button" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+text = "清空"
+
+[node name="ExportBtn" type="Button" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+text = "导出"
+
+[node name="AutoScrollCheck" type="CheckBox" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer/ToolbarHBox"]
+layout_mode = 2
+text = "自动滚动"
+button_pressed = true
+
+[node name="ResultsScroll" type="ScrollContainer" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 2
+
+[node name="ResultsLabel" type="RichTextLabel" parent="HSplitContainer/ResultsPanel/VBoxContainer/TabContainer/OutputTab/VBoxContainer/ResultsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+fit_content = false
+bbcode_enabled = true
+scroll_active = true
+text = "Initializing..."

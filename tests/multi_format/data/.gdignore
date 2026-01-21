@@ -1,0 +1,5 @@
+# Ignore all automatically generated test output files
+*.gdsv
+*.csv
+*.tsv
+*.json

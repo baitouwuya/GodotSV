@@ -1,0 +1,423 @@
+extends Node
+
+## 大文件读写性能测试脚本
+## 测试 GDSVDataProcessor 和 GDSVStreamReader 在处理大文件时的性能表现
+
+#region 常量 Constants
+
+## 测试文件路径
+const DATA_DIR = "res://tests/large_file/data"
+const FILE_10K = "%s/large_10k.gdsv" % DATA_DIR
+const FILE_50K = "%s/large_50k.gdsv" % DATA_DIR
+const TEST_OUTPUT = "%s/test_output.gdsv" % DATA_DIR
+
+#endregion
+
+#region 生命周期方法 Lifecycle Methods
+
+func _ready() -> void:
+	TestOutputLogger.log("=".repeat(80))
+	TestOutputLogger.log("开始大文件性能测试")
+	TestOutputLogger.log("=".repeat(80))
+	TestOutputLogger.log("\n")
+
+	# 确保数据目录存在
+	_ensure_data_directory()
+
+	# 运行所有测试
+	_run_all_tests()
+
+	TestOutputLogger.log("\n")
+	TestOutputLogger.log("=".repeat(80))
+	TestOutputLogger.log("所有测试完成")
+	TestOutputLogger.log("=".repeat(80))
+
+#endregion
+
+#region 测试运行 Test Runner
+
+## 运行所有测试
+func _run_all_tests() -> void:
+	# 测试1: 读取 10,000 行 GDSV 文件
+	test1_read_10k_rows()
+
+	# 测试2: 读取 50,000 行 GDSV 文件
+	test2_read_50k_rows()
+
+	# 测试3: 写入 10,000 行数据并验证
+	test3_write_10k_rows()
+
+	# 测试4: 测试流式读取性能
+	test4_stream_read_performance()
+
+	# 测试5: 测试内存占用情况
+	test5_memory_usage()
+
+#endregion
+
+#region 测试方法 Test Methods
+
+## 测试1: 读取 10,000 行 GDSV 文件
+func test1_read_10k_rows() -> void:
+	TestOutputLogger.log("\n" + "-".repeat(80))
+	TestOutputLogger.log("[测试 1] 读取 10,000 行 GDSV 文件")
+	TestOutputLogger.log("-".repeat(80))
+
+	if not FileAccess.file_exists(FILE_10K):
+		TestOutputLogger.log("未找到测试文件: %s" % FILE_10K)
+		TestOutputLogger.log("请先运行以下命令生成测试数据:")
+		TestOutputLogger.log("  python tools/generate_test_data.py --preset large --output %s" % FILE_10K)
+		return
+
+	var file_size := FileAccess.get_open_error()
+	var file := FileAccess.open(FILE_10K, FileAccess.READ)
+	if file != null:
+		file_size = file.get_length()
+		file.close()
+
+	TestOutputLogger.log("文件: %s" % FILE_10K)
+	TestOutputLogger.log("文件大小: %.2f MB" % (file_size / 1024.0 / 1024.0))
+
+	# 使用 GDSVDataProcessor 读取
+	var processor := GDSVDataProcessor.new()
+	var start_time := Time.get_ticks_usec()
+
+	var success := processor.load_gdsv_file(FILE_10K)
+	var end_time := Time.get_ticks_usec()
+
+	if success:
+		var load_time_ms := (end_time - start_time) / 1000.0
+		var row_count := processor.get_row_count()
+		var column_count := processor.get_column_count()
+
+		TestOutputLogger.log("\n加载成功!")
+		TestOutputLogger.log("  加载时间: %.2f ms" % load_time_ms)
+		TestOutputLogger.log("  行数: %d" % row_count)
+		TestOutputLogger.log("  列数: %d" % column_count)
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0))
+		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
+		TestOutputLogger.log("  [通过] 成功读取大文件")
+	else:
+		TestOutputLogger.log("\n加载失败: %s" % processor.last_error)
+
+## 测试2: 读取 50,000 行 GDSV 文件
+func test2_read_50k_rows() -> void:
+	TestOutputLogger.log("\n" + "-".repeat(80))
+	TestOutputLogger.log("[测试 2] 读取 50,000 行 GDSV 文件")
+	TestOutputLogger.log("-".repeat(80))
+
+	if not FileAccess.file_exists(FILE_50K):
+		TestOutputLogger.log("未找到测试文件: %s" % FILE_50K)
+		TestOutputLogger.log("请先运行以下命令生成测试数据:")
+		TestOutputLogger.log("  python tools/generate_test_data.py --rows 50000 --output %s" % FILE_50K)
+		TestOutputLogger.log("  [失败] 测试文件不存在")
+		return
+
+	var file_size := 0
+	var file := FileAccess.open(FILE_50K, FileAccess.READ)
+	if file != null:
+		file_size = file.get_length()
+		file.close()
+
+	TestOutputLogger.log("文件: %s" % FILE_50K)
+	TestOutputLogger.log("文件大小: %.2f MB" % (file_size / 1024.0 / 1024.0))
+
+	# 使用 GDSVDataProcessor 读取
+	var processor := GDSVDataProcessor.new()
+	var start_time := Time.get_ticks_usec()
+
+	var success := processor.load_gdsv_file(FILE_50K)
+	var end_time := Time.get_ticks_usec()
+
+	if success:
+		var load_time_ms := (end_time - start_time) / 1000.0
+		var row_count := processor.get_row_count()
+		var column_count := processor.get_column_count()
+
+		TestOutputLogger.log("\n加载成功!")
+		TestOutputLogger.log("  加载时间: %.2f ms" % load_time_ms)
+		TestOutputLogger.log("  行数: %d" % row_count)
+		TestOutputLogger.log("  列数: %d" % column_count)
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0))
+		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
+		TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
+	else:
+		TestOutputLogger.log("\n加载失败: %s" % processor.last_error)
+
+## 测试3: 写入 10,000 行数据并验证
+func test3_write_10k_rows() -> void:
+	TestOutputLogger.log("\n" + "-".repeat(80))
+	TestOutputLogger.log("[测试 3] 写入 10,000 行数据并验证")
+	TestOutputLogger.log("-".repeat(80))
+
+	var processor := GDSVDataProcessor.new()
+	var row_count := 10000
+	var column_count := 5
+
+	TestOutputLogger.log("生成测试数据: %d 行 x %d 列" % [row_count, column_count])
+
+	# 生成测试数据
+	var data_start_time := Time.get_ticks_usec()
+	var headers := PackedStringArray(["id:int", "name:string", "hp:int", "is_boss:bool", "ratio:float"])
+	var rows: Array[PackedStringArray] = []
+
+	for i in range(row_count):
+		var name_suffix := ""
+		if i >= 26:
+			name_suffix = "_%d" % i
+		rows.append(PackedStringArray([
+			"%d" % (i + 1),
+			"TestEntity%s" % name_suffix,
+			"%d" % (50 + i % 200),
+			"true" if i % 10 == 0 else "false",
+			"%.2f" % (0.5 + float(i % 100) / 100.0)
+		]))
+
+	# 直接写入文件，不通过load_gdsv_content
+	var gdsv_content := _build_gdsv_content(headers, rows)
+	var data_gen_time_ms := (Time.get_ticks_usec() - data_start_time) / 1000.0
+
+	# 保存到文件
+	var write_start_time := Time.get_ticks_usec()
+	var file := FileAccess.open(TEST_OUTPUT, FileAccess.WRITE)
+	var write_success := false
+	if file != null:
+		file.store_string(gdsv_content)
+		file.close()
+		write_success = true
+	var write_time_ms := (Time.get_ticks_usec() - write_start_time) / 1000.0
+
+	if write_success:
+		var file_size := 0
+		var verify_file := FileAccess.open(TEST_OUTPUT, FileAccess.READ)
+		if verify_file != null:
+			file_size = verify_file.get_length()
+			verify_file.close()
+
+		TestOutputLogger.log("\n写入成功!")
+		TestOutputLogger.log("  数据生成时间: %.2f ms" % data_gen_time_ms)
+		TestOutputLogger.log("  写入时间: %.2f ms" % write_time_ms)
+		TestOutputLogger.log("  文件大小: %.2f MB" % (file_size / 1024.0 / 1024.0))
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (write_time_ms / row_count if row_count > 0 else 0))
+		TestOutputLogger.log("  写入速度: %.2f 行/秒" % (row_count / (write_time_ms / 1000.0) if write_time_ms > 0 else 0))
+
+		# 验证读取
+		var verify_processor := GDSVDataProcessor.new()
+		var verify_start_time := Time.get_ticks_usec()
+		var verify_success := verify_processor.load_gdsv_file(TEST_OUTPUT)
+		var verify_time_ms := (Time.get_ticks_usec() - verify_start_time) / 1000.0
+
+		if verify_success:
+			var verify_row_count := verify_processor.get_row_count()
+			var verify_column_count := verify_processor.get_column_count()
+
+			TestOutputLogger.log("\n验证成功!")
+			TestOutputLogger.log("  读取验证时间: %.2f ms" % verify_time_ms)
+			TestOutputLogger.log("  验证行数: %d" % verify_row_count)
+			TestOutputLogger.log("  验证列数: %d" % verify_column_count)
+
+			if verify_row_count == row_count and verify_column_count == column_count:
+				TestOutputLogger.log("  数据一致性: 通过")
+				TestOutputLogger.log("  [通过] 写入和验证成功")
+			else:
+				TestOutputLogger.log("  数据一致性: 失败 (预期 %d 行 %d 列, 实际 %d 行 %d 列)" % [row_count, column_count, verify_row_count, verify_column_count])
+				TestOutputLogger.log("  [失败] 数据一致性验证失败")
+		else:
+			TestOutputLogger.log("\n验证失败: %s" % verify_processor.last_error)
+	else:
+		TestOutputLogger.log("\n写入失败: %s" % processor.last_error)
+
+## 测试4: 测试流式读取性能
+func test4_stream_read_performance() -> void:
+	TestOutputLogger.log("\n" + "-".repeat(80))
+	TestOutputLogger.log("[测试 4] CSVStreamReader 流式读取性能")
+	TestOutputLogger.log("-".repeat(80))
+
+	if not FileAccess.file_exists(FILE_10K):
+		TestOutputLogger.log("未找到测试文件: %s" % FILE_10K)
+		TestOutputLogger.log("请先运行以下命令生成测试数据:")
+		TestOutputLogger.log("  python tools/generate_test_data.py --preset large --output %s" % FILE_10K)
+		return
+
+	var file_size := 0
+	var file := FileAccess.open(FILE_10K, FileAccess.READ)
+	if file != null:
+		file_size = file.get_length()
+		file.close()
+
+	TestOutputLogger.log("文件: %s" % FILE_10K)
+	TestOutputLogger.log("文件大小: %.2f MB" % (file_size / 1024.0 / 1024.0))
+
+	# 使用 GDSVStreamReader 流式读取
+	var stream_reader := GDSVStreamReader.new()
+	var open_start_time := Time.get_ticks_usec()
+
+	if not stream_reader.open_file(FILE_10K, true, "\t"):
+		TestOutputLogger.log("\n打开文件失败: %s" % stream_reader.get_last_error())
+		return
+
+	var open_time_ms := (Time.get_ticks_usec() - open_start_time) / 1000.0
+	var headers := stream_reader.get_header()
+	TestOutputLogger.log("\n表头: %s" % headers)
+
+	# 读取所有行
+	var read_start_time := Time.get_ticks_usec()
+	var line_count := 0
+	var batch_size := 1000
+	var total_batches := 0
+
+	while not stream_reader.is_eof():
+		var lines: Array = stream_reader.read_lines(batch_size)
+		if not lines.is_empty():
+			line_count += lines.size()
+			total_batches += 1
+			if total_batches % 10 == 0:
+				TestOutputLogger.log("  已读取: %d 行..." % line_count)
+
+		await get_tree().process_frame
+
+	var read_time_ms := (Time.get_ticks_usec() - read_start_time) / 1000.0
+	stream_reader.close_file()
+
+	TestOutputLogger.log("\n流式读取完成!")
+	TestOutputLogger.log("  打开时间: %.2f ms" % open_time_ms)
+	TestOutputLogger.log("  读取时间: %.2f ms" % read_time_ms)
+	TestOutputLogger.log("  总行数: %d" % line_count)
+	TestOutputLogger.log("  总批次数: %d" % total_batches)
+	TestOutputLogger.log("  平均每批时间: %.4f ms" % (read_time_ms / total_batches if total_batches > 0 else 0))
+	TestOutputLogger.log("  读取速度: %.2f 行/秒" % (line_count / (read_time_ms / 1000.0) if read_time_ms > 0 else 0))
+	TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (read_time_ms / 1000.0) if read_time_ms > 0 else 0))
+
+	# 测试批量读取性能
+	TestOutputLogger.log("\n批量读取性能测试:")
+	var batch_sizes: Array[int] = [100, 500, 1000, 2000, 5000]
+
+	for batch in batch_sizes:
+		var reader := GDSVStreamReader.new()
+		var batch_open_time := Time.get_ticks_usec()
+		reader.open_file(FILE_10K, true, "\t")
+		var batch_open_time_ms := (Time.get_ticks_usec() - batch_open_time) / 1000.0
+
+		var batch_read_time := Time.get_ticks_usec()
+		var batch_line_count := 0
+		while not reader.is_eof():
+			var lines: Array = reader.read_lines(batch)
+			if not lines.is_empty():
+				batch_line_count += lines.size()
+		var batch_read_time_ms := (Time.get_ticks_usec() - batch_read_time) / 1000.0
+
+		reader.close_file()
+
+		TestOutputLogger.log("  批量大小 %4d: 读取时间 %.2f ms, 速度 %.2f 行/秒" % [
+			batch, batch_read_time_ms, batch_line_count / (batch_read_time_ms / 1000.0) if batch_read_time_ms > 0 else 0
+		])
+
+## 测试5: 测试内存占用情况
+func test5_memory_usage() -> void:
+	TestOutputLogger.log("\n" + "-".repeat(80))
+	TestOutputLogger.log("[测试 5] 内存占用情况")
+	TestOutputLogger.log("-".repeat(80))
+
+	TestOutputLogger.log("注意: Godot 4.x 不提供精确的内存占用 API")
+	TestOutputLogger.log("以下为相对内存使用估算\n")
+
+	if not FileAccess.file_exists(FILE_10K):
+		TestOutputLogger.log("未找到测试文件: %s" % FILE_10K)
+		TestOutputLogger.log("请先运行以下命令生成测试数据:")
+		TestOutputLogger.log("  python tools/generate_test_data.py --preset large --output %s" % FILE_10K)
+		return
+
+	# 测试完整加载的相对内存占用
+	TestOutputLogger.log("完整加载测试:")
+	var processor1 := GDSVDataProcessor.new()
+
+	TestOutputLogger.log("  加载前 - 清理内存...")
+	OS.delay_msec(100) # 给引擎时间清理
+
+	var full_start_time := Time.get_ticks_usec()
+	processor1.load_gdsv_file(FILE_10K)
+	var full_time_ms := (Time.get_ticks_usec() - full_start_time) / 1000.0
+	var full_row_count := processor1.get_row_count()
+	var full_column_count := processor1.get_column_count()
+
+	TestOutputLogger.log("  加载后 - 行数: %d, 列数: %d" % [full_row_count, full_column_count])
+	TestOutputLogger.log("  加载时间: %.2f ms" % full_time_ms)
+
+	# 测试流式读取的相对内存占用
+	TestOutputLogger.log("\n流式读取测试:")
+	var stream_reader := GDSVStreamReader.new()
+
+	TestOutputLogger.log("  打开前 - 清理内存...")
+	OS.delay_msec(100) # 给引擎时间清理
+
+	var stream_start_time := Time.get_ticks_usec()
+	stream_reader.open_file(FILE_10K, true, "\t")
+	var stream_open_time_ms := (Time.get_ticks_usec() - stream_start_time) / 1000.0
+
+	TestOutputLogger.log("  打开后 - 逐行读取...")
+	var stream_read_start := Time.get_ticks_usec()
+	var stream_line_count := 0
+	var last_progress_time := Time.get_ticks_usec()
+
+	while not stream_reader.is_eof():
+		var line: Array = stream_reader.read_next_line()
+		if not line.is_empty():
+			stream_line_count += 1
+
+		# 每秒打印一次进度
+		if Time.get_ticks_usec() - last_progress_time > 1000000:
+			TestOutputLogger.log("    已读取: %d 行, 进度: %.1f%%" % [stream_line_count, stream_reader.get_progress() * 100])
+			last_progress_time = Time.get_ticks_usec()
+
+	var stream_read_time_ms := (Time.get_ticks_usec() - stream_read_start) / 1000.0
+	stream_reader.close_file()
+
+	TestOutputLogger.log("  读取完成 - 总行数: %d" % stream_line_count)
+	TestOutputLogger.log("  打开时间: %.2f ms" % stream_open_time_ms)
+	TestOutputLogger.log("  读取时间: %.2f ms" % stream_read_time_ms)
+
+	# 对比结果
+	TestOutputLogger.log("\n对比结果:")
+	TestOutputLogger.log("  完整加载 - 时间: %.2f ms" % full_time_ms)
+	TestOutputLogger.log("  流式读取 - 时间: %.2f ms" % (stream_open_time_ms + stream_read_time_ms))
+	TestOutputLogger.log("  时间差异: %.2f ms (%.1f%%)" % [
+		(stream_open_time_ms + stream_read_time_ms) - full_time_ms,
+		((stream_open_time_ms + stream_read_time_ms) / full_time_ms - 1.0) * 100 if full_time_ms > 0 else 0
+	])
+	TestOutputLogger.log("\n  结论: 流式读取在大文件处理时更有利于内存管理")
+
+#endregion
+
+#region 辅助方法 Helper Methods
+
+## 确保数据目录存在
+func _ensure_data_directory() -> void:
+	# 创建 data 子目录
+	if not DirAccess.dir_exists_absolute(DATA_DIR):
+		var dir := DirAccess.open("res://tests")
+		if dir != null:
+			dir.make_dir("large_file")
+			var large_file_dir := DirAccess.open(DATA_DIR)
+			if large_file_dir != null:
+				large_file_dir.make_dir("data")
+				TestOutputLogger.log("已创建数据目录: %s" % DATA_DIR)
+
+## 构建 GDSV 内容字符串
+func _build_gdsv_content(headers: PackedStringArray, rows: Array[PackedStringArray]) -> String:
+	var lines := PackedStringArray()
+	lines.append(_join_gdsv_row(headers, "\t"))
+	for row in rows:
+		lines.append(_join_gdsv_row(row, "\t"))
+	return "\n".join(lines)
+
+## 拼接 GDSV 行
+func _join_gdsv_row(row: PackedStringArray, delimiter: String) -> String:
+	var escaped_cells := PackedStringArray()
+	for cell in row:
+		var cell_str := str(cell)
+		if cell_str.contains(delimiter) or cell_str.contains("\n") or cell_str.contains("\""):
+			cell_str = "\"" + cell_str.replace("\"", "\"\"") + "\""
+		escaped_cells.append(cell_str)
+	return delimiter.join(escaped_cells)
+
+#endregion

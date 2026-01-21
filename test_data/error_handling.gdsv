@@ -1,0 +1,6 @@
+# Error handling test cases
+id:int=""	name:string=""	age:int=""	score:float=""
+1	Alice	25	95.5
+2	Bob	abc	88.0
+3	Charlie	30	invalid
+4	David	28	92.3

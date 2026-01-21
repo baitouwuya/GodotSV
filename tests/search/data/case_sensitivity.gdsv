@@ -1,0 +1,11 @@
+id:int	name:String	status:String	tags:Array
+1	alpha	Active	["tag1", "TAG2", "tag3"]
+2	Beta	ACTIVE	["Tag1", "TAG2", "tag3"]
+3	Gamma	INACTIVE	["tag1", "tag2", "TAG3"]
+4	DELTA	Active	["TAG1", "TAG2", "TAG3"]
+5	epsilon	ACTIVE	["tag1", "tag2", "tag3"]
+6	ZETA	inactive	["TAG1", "TAG2", "tag3"]
+7	OMEGA	Active	["tag1", "tag2", "tag3"]
+8	Theta	ACTIVE	["TAG1", "tag2", "TAG3"]
+9	Iota	INACTIVE	["tag1", "TAG2", "tag3"]
+10	kappa	Active	["TAG1", "TAG2", "TAG3"]

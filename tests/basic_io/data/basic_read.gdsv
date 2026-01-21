@@ -1,0 +1,4 @@
+id:int=	name: String=	level:int=	is_active:bool=	score:float=
+1	First Player	10	true	95.5
+2	Player Two	25	false	75.3
+3	Veteran	50	true	99.9

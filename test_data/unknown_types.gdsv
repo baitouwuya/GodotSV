@@ -1,0 +1,4 @@
+# Test with unknown types (should fallback to string)
+id:int=""	name:unknown=""	level:invalidtype=""	score:float=""
+1	Alice	10	95.5
+2	Bob	20	88.0
