@@ -1,5 +1,4 @@
 # GodotSV
-<img src="addons/GodotSV/GodotSV.png" width="160" alt="GodotSV">
 
 ## [点击详情](addons/GodotSV/readme.md)
 
