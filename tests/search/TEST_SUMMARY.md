@@ -77,10 +77,10 @@
 
 1. 确保已安装 Godot 并添加到系统路径，或修改 `run_search_tests.bat` 中的路径
 2. 打开命令提示符或 PowerShell
-3. 进入 demo 目录并运行：
+3. 进入 GodotSV 目录并运行：
 
 ```batch
-cd D:\UGit\better-godot-csv\demo
+cd D:\UGit\better-godot-csv\GodotSV
 run_search_tests.bat
 ```
 
@@ -93,7 +93,7 @@ run_search_tests.bat
 
 ### 4.2 方法二：在 Godot 编辑器中运行
 
-1. 在 Godot 编辑器中打开 `demo/` 项目
+1. 在 Godot 编辑器中打开 `GodotSV/` 项目
 2. 双击打开 `tests/search/simple_search_test.tscn` 场景
 3. 按 **F5** 播放项目，或点击"播放场景"按钮
 
@@ -287,11 +287,11 @@ id:int	name:String	age:int	city:String	active:bool	score:float
 
 ```batch
 # Windows - 运行所有搜索测试
-cd D:\UGit\better-godot-csv\demo
+cd D:\UGit\better-godot-csv\GodotSV
 run_search_tests.bat
 
 # 手动运行 Godot 测试场景
-"C:\Godot\Godot.exe" --path "D:\UGit\better-godot-csv\demo" res://tests/search/simple_search_test.tscn
+"C:\Godot\Godot.exe" --path "D:\UGit\better-godot-csv\GodotSV" res://tests/search/simple_search_test.tscn
 
 # 编辑器中运行 (F5)
 # 打开 simple_search_test.tscn 并按 F5
@@ -299,7 +299,7 @@ run_search_tests.bat
 
 ### B. 相关文档
 
-- GDSV 主文档: `demo/addons/GodotSV/README.md`
+- GDSV 主文档: `GodotSV/addons/GodotSV/README.md`
 - 项目根指令: `CLAUDE.md`
 - 测试目录说明: `tests/search/README.md`
 

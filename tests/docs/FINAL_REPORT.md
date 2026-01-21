@@ -209,7 +209,7 @@ ERROR: The variable type is being inferred from a Variant value
 ## 📁 最终测试结构
 
 ```
-demo/
+GodotSV/
 ├── tests/
 │   ├── test_main.gd                    # 基础加载测试
 │   ├── test_main.tscn
@@ -302,9 +302,9 @@ demo/
 
 - **查询逻辑分析**: 本报告 Part 1
 - **查询弹窗验证**: 本报告 Part 2
-- **详细测试结果**: `demo/tests/search/TEST_RESULTS.md`
-- **测试使用说明**: `demo/tests/search/TEST_SUMMARY.md`
-- **API 文档**: `demo/addons/GodotSV/README.md`
+- **详细测试结果**: `GodotSV/tests/search/TEST_RESULTS.md`
+- **测试使用说明**: `GodotSV/tests/search/TEST_SUMMARY.md`
+- **API 文档**: `GodotSV/addons/GodotSV/README.md`
 - **C++ 源码**: `src/gdsv/gdsv_search_engine.cpp`
 
 ---

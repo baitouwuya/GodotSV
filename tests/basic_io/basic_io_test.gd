@@ -274,7 +274,7 @@ func run_test_write_and_read_gdsv() -> void:
 		return
 
 	var row1 := processor.get_row(1)
-	if row1[0] != "2" or row1[1] != "Demo" or row1[2] != "50.25" or row1[3] != "false":
+	if row1[0] != "2" or row1[1] != "GodotSV" or row1[2] != "50.25" or row1[3] != "false":
 		failed_count += 1
 		print_result(test_name, false, "第二行数据不匹配: %s" % str(row1))
 		return

@@ -11,7 +11,7 @@
 
 ### 方法 1: 在 Godot 编辑器中运行
 
-1. 在 Godot 编辑器中打开 `demo/` 项目
+1. 在 Godot 编辑器中打开 `GodotSV/` 项目
 2. 双击打开 `tests/search/simple_search_test.tscn` 场景
 3. 按 F5 或点击"播放场景"按钮
 

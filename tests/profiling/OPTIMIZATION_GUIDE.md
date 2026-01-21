@@ -48,7 +48,7 @@ FileAccess.get_as_text() → content (String)
 ### 解决方案
 使用C++的 `ParseFromFile` 直接读取文件：
 
-**改动文件：** `demo/addons/GodotSV/scripts/gdsv_data_processor.gd`
+**改动文件：** `GodotSV/addons/GodotSV/scripts/gdsv_data_processor.gd`
 
 **改动位置：** `load_gdsv_file` 方法，约第101-127行
 

@@ -218,7 +218,7 @@ tests/
 
 ## 🔧 测试数据位置
 
-### 共享测试数据: `demo/test_data/`
+### 共享测试数据: `GodotSV/test_data/`
 
 所有测试共享的数据文件应放在项目根级别的 `test_data/` 目录:
 
@@ -241,14 +241,14 @@ tests/
 
 ### 方法1: 使用主测试UI（推荐） ⭐NEW
 
-1. 在Godot编辑器中打开 `demo/` 项目
+1. 在Godot编辑器中打开 `GodotSV/` 项目
 2. 运行 `tests/test_runner_main.tscn` 场景（F6）
 3. 点击左侧按钮选择要运行的测试类别
 4. 查看右侧测试结果和统计信息
 
 ### 方法2: 运行单个测试场景
 
-1. 在Godot编辑器中打开 `demo/` 项目
+1. 在Godot编辑器中打开 `GodotSV/` 项目
 2. 在文件系统面板找到测试场景(.tscn文件)
 3. 双击打开场景
 4. 点击运行按钮(F6)或右键选择"运行场景"
@@ -299,20 +299,20 @@ python tools/generate_test_data.py --rows 10000 --format tsv --output my_test.ts
 
 ```bash
 # 生成10,000行测试数据
-python tools/generate_test_data.py --preset large --rows 10000 --output demo/tests/large_file/data/large_10k.gdsv
+python tools/generate_test_data.py --preset large --rows 10000 --output GodotSV/tests/large_file/data/large_10k.gdsv
 
 # 生成50,000行测试数据
-python tools/generate_test_data.py --rows 50000 --output demo/tests/large_file/data/large_50k.gdsv
+python tools/generate_test_data.py --rows 50000 --output GodotSV/tests/large_file/data/large_50k.gdsv
 ```
 
 ### 为搜索性能测试生成数据
 
 ```bash
 # 生成10,000行搜索测试数据
-python tools/generate_test_data.py --preset search --rows 10000 --output demo/tests/search_performance/data/search_10k.gdsv
+python tools/generate_test_data.py --preset search --rows 10000 --output GodotSV/tests/search_performance/data/search_10k.gdsv
 
 # 生成50,000行搜索测试数据
-python tools/generate_test_data.py --preset search --rows 50000 --output demo/tests/search_performance/data/search_50k.gdsv
+python tools/generate_test_data.py --preset search --rows 50000 --output GodotSV/tests/search_performance/data/search_50k.gdsv
 ```
 
 ### 支持的预设配置

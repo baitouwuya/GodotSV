@@ -4,7 +4,7 @@ extends Node
 ## 目的：用最简单的方式定位性能瓶颈，不修改任何现有代码
 
 #region 常量 Constants
-const DATA_DIR = "res://demo/tests/profiling/data"
+const DATA_DIR = "res://GodotSV/tests/profiling/data"
 const TEST_FILE = "%s/profile_10k.gdsv" % DATA_DIR
 const TEST_FILE_50K = "res://tests/search_performance/data/search_50k.gdsv"
 #endregion
@@ -234,16 +234,16 @@ func test_stage_4_full_load(test_file: String) -> float:
 
 func _ensure_data_directory() -> void:
 	if not DirAccess.dir_exists_absolute(DATA_DIR):
-		# DATA_DIR 是 res://demo/tests/profiling/data，因此应从 res://demo/tests 开始创建
-		var dir := DirAccess.open("res://demo/tests")
+		# DATA_DIR 是 res://GodotSV/tests/profiling/data，因此应从 res://GodotSV/tests 开始创建
+		var dir := DirAccess.open("res://GodotSV/tests")
 		if dir == null:
-			push_error("无法打开目录: res://demo/tests，无法创建性能测试数据目录")
+			push_error("无法打开目录: res://GodotSV/tests，无法创建性能测试数据目录")
 			return
 		
 		dir.make_dir("profiling")
-		var profiling_dir := DirAccess.open("res://demo/tests/profiling")
+		var profiling_dir := DirAccess.open("res://GodotSV/tests/profiling")
 		if profiling_dir == null:
-			push_error("无法打开目录: res://demo/tests/profiling")
+			push_error("无法打开目录: res://GodotSV/tests/profiling")
 			return
 		
 		profiling_dir.make_dir("data")

@@ -90,7 +90,7 @@ static const int MATCH_ENDS_WITH = 5;
 
 ### 修复 1: 查询弹窗保持打开
 
-**文件**: `demo/addons/GodotSV/scripts/gdsv_editor_panel.gd`
+**文件**: `GodotSV/addons/GodotSV/scripts/gdsv_editor_panel.gd`
 
 **修改内容**:
 
@@ -123,7 +123,7 @@ _search_dialog.custom_action.connect(_on_search_dialog_action)  // 使用 custom
 
 ### 修复 2: 枚举值对齐
 
-**文件**: `demo/addons/GodotSV/scripts/gdsv_data_model.gd`
+**文件**: `GodotSV/addons/GodotSV/scripts/gdsv_data_model.gd`
 
 **修改内容**:
 
@@ -184,7 +184,7 @@ enum MatchMode {
 ### 测试 2: 手动验证（建议）
 
 **步骤**:
-1. 在 Godot 编辑器中打开 `demo/` 项目
+1. 在 Godot 编辑器中打开 `GodotSV/` 项目
 2. 打开 `test_data/advanced.gdsv`
 3. 按 `Ctrl+F` 打开查询弹窗
 4. 输入 "1" 并点击"查询"按钮
@@ -295,10 +295,10 @@ enum MatchMode {
 
 ## 📚 相关文档
 
-- **完整审查报告**: `demo/tests/search/FINAL_REPORT.md`
-- **测试结果**: `demo/tests/search/TEST_RESULTS.md`
+- **完整审查报告**: `GodotSV/tests/search/FINAL_REPORT.md`
+- **测试结果**: `GodotSV/tests/search/TEST_RESULTS.md`
 - **C++ 枚举定义**: `src/gdsv/gdsv_search_engine.h:25-30`
-- **GDScript 枚举定义**: `demo/addons/GodotSV/scripts/gdsv_data_model.gd:8-14`
+- **GDScript 枚举定义**: `GodotSV/addons/GodotSV/scripts/gdsv_data_model.gd:8-14`
 
 ---
 

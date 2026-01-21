@@ -16,10 +16,10 @@
 
 ```bash
 # 生成10,000行搜索测试数据
-python tools/generate_test_data.py --preset search --rows 10000 --output demo/tests/search_performance/data/search_10k.gdsv
+python tools/generate_test_data.py --preset search --rows 10000 --output GodotSV/tests/search_performance/data/search_10k.gdsv
 
 # 生成50,000行搜索测试数据
-python tools/generate_test_data.py --preset search --rows 50000 --output demo/tests/search_performance/data/search_50k.gdsv
+python tools/generate_test_data.py --preset search --rows 50000 --output GodotSV/tests/search_performance/data/search_50k.gdsv
 ```
 
 ## 📊 运行测试
@@ -28,7 +28,7 @@ python tools/generate_test_data.py --preset search --rows 50000 --output demo/te
 
 或使用命令行：
 ```bash
-godot --path demo tests/search_performance/search_performance_test.tscn
+godot --path GodotSV tests/search_performance/search_performance_test.tscn
 ```
 
 ## 📈 性能指标
