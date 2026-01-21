@@ -1,5 +1,5 @@
-# GodotSV-Project
-[addons/GodotSV/readme.md](https://github.com/baitouwuya/GodotSV)
+# GodotSV
+[addons/GodotSV/readme.md](addons/GodotSV/readme.md)
 
 Godot Data Separated Values（GDSV）高性能表格数据插件。
 
