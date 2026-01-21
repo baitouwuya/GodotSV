@@ -1,0 +1,5 @@
+id:int=	name:string=	hp:int=	is_boss:bool=	ratio:float=
+1	Slime	50	false	0.8
+2	Goblin	80	false	1.0
+3	Dragon	999	true	1.5
+				

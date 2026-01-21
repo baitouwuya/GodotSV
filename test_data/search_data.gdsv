@@ -1,0 +1,12 @@
+# Search functionality test data
+id:int=	name:string=	email:string=""	phone:string=""	tags:string=
+1	Alice	alice@example.com	13800138000	game;dev
+2	Bob	bob@test.com	13900139000	database;backend
+3	Charlie	charlie@demo.org	13700137000	frontend
+4	DaVinci	davinci@email.com	13600136000	game;art
+5	Eve	eve@company.com	13500135000	dev;security
+6	TestUser1	test1@test.com	15000150000	game
+7	TestUser2	test2@test.com	15100151000	dev
+8	Admin	admin@company.com	NULL	admin;root
+9	Guest	guest@company.com	18800188000	NULL
+10	NULL	NULL	NULL	NULL
