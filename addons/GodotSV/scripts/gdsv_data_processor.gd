@@ -702,7 +702,8 @@ func parse_type_annotations(header_row: PackedStringArray) -> Array:
 			"default": _type_annotation_parser.get_field_default(field_name),
 			"range": _type_annotation_parser.get_field_range(field_name),
 			"enum_values": _type_annotation_parser.get_field_enum_values(field_name),
-			"array_element_type": _type_annotation_parser.get_array_element_type(field_name)
+			"array_element_type": _type_annotation_parser.get_array_element_type(field_name),
+			"constraints": _type_annotation_parser.get_field_constraints(field_name)
 		}
 		results.append(result)
 	
@@ -750,11 +751,12 @@ func _extract_clean_header() -> PackedStringArray:
 func convert_cell_value(value: String, type_definition: Dictionary) -> Variant:
 	_reset_error_state()
 	
-	var result: Variant = _type_converter.convert_value(value, type_definition)
-	if result.is_empty() and _type_converter.has_error():
-		_set_error(_type_converter.get_last_error())
+	var result: Dictionary = _type_converter.convert_value_result(value, type_definition)
+	if not bool(result.get("success", false)):
+		_set_error(str(result.get("error_message", ERROR_CONVERSION_FAILED)))
+		return result.get("value")
 	
-	return result
+	return result.get("value")
 
 
 ## 批量转换行
