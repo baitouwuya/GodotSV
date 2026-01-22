@@ -1,6 +1,6 @@
 # GodotSV
 
-## [点击详情](addons/GodotSV/readme.md)
+## [点击详情](addons/GodotSV/README.md)
 
 <img src="./GodotSV.png" width="160" alt="GodotSV">
 
