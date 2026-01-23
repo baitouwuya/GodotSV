@@ -173,7 +173,7 @@ func test_stage_3_cpp_parsing(test_file: String) -> float:
 	var parser := GDSVParser.new()
 	var iterations := 10
 	var total_parse_time := 0.0
-	var total_transfer_time := 0.0
+	var _total_transfer_time := 0.0
 
 	# 预热
 	var _ignored := parser.parse_from_string(content, true, "\t")

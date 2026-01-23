@@ -29,6 +29,9 @@ var _required_fields: Array[StringName] = []
 ## GDSV Schema 资源
 var _schema: GDSVSchema = null
 
+## 类型转换器
+var _type_converter: GDSVTypeConverter = null
+
 ## 错误信息列表
 var _errors: Array[String] = []
 
@@ -60,6 +63,7 @@ func _init() -> void:
 	_successful_rows = 0
 	_failed_rows = 0
 	_current_row = 0
+	_type_converter = GDSVTypeConverter.new()
 
 
 ## 加载 GDSV 文件
@@ -266,6 +270,9 @@ func stream() -> RefCounted:
 	for field_name in _default_values:
 		reader.set_default_value(field_name, _default_values[field_name])
 
+	# 应用必需字段
+	reader.set_required_fields(_required_fields)
+
 	# 应用 Schema
 	if _schema != null:
 		reader.set_schema(_schema)
@@ -383,6 +390,11 @@ func _apply_type_conversions(row_data: Dictionary) -> void:
 		var value := row_data.get(field_name)
 
 		if value == null:
+			if field_name in _required_fields:
+				var display_path := _get_display_path(_file_path)
+				var error_message := "必需字段为空: 行 %d, 列 '%s' (file: %s)" % [_current_row, field_name, display_path]
+				_errors.append(error_message)
+				_warnings.append(error_message)
 			continue
 
 		row_data[field_name] = _convert_value(value, type, field_name)
@@ -393,60 +405,56 @@ func _convert_value(value: Variant, type: GDSVFieldDefinition.FieldType, field_n
 	if value == null:
 		return null
 
+	var str_value := str(value).strip_edges()
+	if str_value.is_empty():
+		if field_name in _required_fields:
+			var display_path := _get_display_path(_file_path)
+			var error_message := "必需字段为空: 行 %d, 列 '%s' (file: %s)" % [_current_row, field_name, display_path]
+			_errors.append(error_message)
+			_warnings.append(error_message)
+		return null
+
 	match type:
-		GDSVFieldDefinition.FieldType.TYPE_INT:
-			var str_value := str(value)
-			if str_value.is_valid_int():
-				return str_value.to_int()
-
-			var display_path := _get_display_path(_file_path)
-			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to int (file: %s)" % [_current_row, field_name, str_value, display_path])
-			return str_value # 保留原始字符串
-		GDSVFieldDefinition.FieldType.TYPE_FLOAT:
-			var str_value := str(value)
-			if str_value.is_valid_float():
-				return str_value.to_float()
-
-			var display_path := _get_display_path(_file_path)
-			_warnings.append("Type conversion failed at row %d, column '%s': cannot convert '%s' to float (file: %s)" % [_current_row, field_name, str_value, display_path])
-			return str_value # 保留原始字符串
-		GDSVFieldDefinition.FieldType.TYPE_BOOL:
-			if value is bool:
-				return value
-			if value is String:
-				return value.to_lower() == "true" or value == "1"
-			return bool(value)
-		GDSVFieldDefinition.FieldType.TYPE_STRING_NAME:
-			if value is StringName:
-				return value
-			return StringName(str(value))
+		GDSVFieldDefinition.FieldType.TYPE_INT, GDSVFieldDefinition.FieldType.TYPE_FLOAT, GDSVFieldDefinition.FieldType.TYPE_BOOL, GDSVFieldDefinition.FieldType.TYPE_STRING_NAME:
+			var type_name := _get_converter_type(type)
+			var result: Dictionary = _type_converter.convert_string_result(str_value, type_name)
+			if not bool(result.get("success", false)):
+				var display_path := _get_display_path(_file_path)
+				var error_detail := str(result.get("error_message", ""))
+				_warnings.append("Type conversion failed at row %d, column '%s': %s (file: %s)" % [_current_row, field_name, error_detail, display_path])
+				return str_value
+			return result.get("value")
 		GDSVFieldDefinition.FieldType.TYPE_JSON:
 			var json := JSON.new()
-			var error := json.parse(str(value))
+			var error := json.parse(str_value)
 			if error == OK:
 				return json.data
+			var display_path := _get_display_path(_file_path)
+			_warnings.append("JSON parse failed at row %d, column '%s': '%s' (file: %s)" % [_current_row, field_name, str_value, display_path])
 			return null
 		GDSVFieldDefinition.FieldType.TYPE_ARRAY:
 			if value is Array:
 				return value
-			if value is String:
-				return value.split(_delimiter, false)
-			return []
+			return str_value.split(_delimiter, false)
 		GDSVFieldDefinition.FieldType.TYPE_RESOURCE, GDSVFieldDefinition.FieldType.TYPE_TEXTURE, GDSVFieldDefinition.FieldType.TYPE_SCENE:
-			return _load_resource(str(value), type)
+			return _load_resource(str_value, type)
 		_:
-			return value
+			return str_value
 
 
 ## 应用默认值
 func _apply_default_values(row_data: Dictionary) -> void:
 	# 应用显式设置的默认值
 	for field_name in _default_values:
+		if field_name in _required_fields:
+			continue
 		if not row_data.has(field_name) or row_data[field_name] == null:
 			row_data[field_name] = _default_values[field_name]
 
 	# 应用类型默认值
 	for field_name in _field_types:
+		if field_name in _required_fields:
+			continue
 		if not row_data.has(field_name) or row_data[field_name] == null:
 			var type: GDSVFieldDefinition.FieldType = _field_types[field_name]
 			row_data[field_name] = _get_type_default(type)
@@ -471,6 +479,20 @@ func _get_type_default(type: GDSVFieldDefinition.FieldType) -> Variant:
 			return null
 		_:
 			return ""
+
+
+func _get_converter_type(type: GDSVFieldDefinition.FieldType) -> String:
+	match type:
+		GDSVFieldDefinition.FieldType.TYPE_INT:
+			return "int"
+		GDSVFieldDefinition.FieldType.TYPE_FLOAT:
+			return "float"
+		GDSVFieldDefinition.FieldType.TYPE_BOOL:
+			return "bool"
+		GDSVFieldDefinition.FieldType.TYPE_STRING_NAME:
+			return "StringName"
+		_:
+			return "String"
 
 
 ## 加载资源

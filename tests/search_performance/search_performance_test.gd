@@ -96,7 +96,7 @@ func test1_search_10k_single_field() -> void:
 			description,
 			results.size(),
 			search_time_ms,
-			processor.get_row_count() / (search_time_ms / 1000.0) if search_time_ms > 0 else 0
+			processor.get_row_count() / (search_time_ms / 1000.0) if search_time_ms > 0 else 0.0
 		])
 
 	TestOutputLogger.log("  [通过] 10K行搜索性能测试完成")
@@ -146,7 +146,7 @@ func test2_search_50k_single_field() -> void:
 			description,
 			results.size(),
 			search_time_ms,
-			processor.get_row_count() / (search_time_ms / 1000.0) if search_time_ms > 0 else 0
+			processor.get_row_count() / (search_time_ms / 1000.0) if search_time_ms > 0 else 0.0
 		])
 
 	TestOutputLogger.log("  [通过] 50K行搜索性能测试完成")

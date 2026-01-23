@@ -71,6 +71,11 @@ var test_categories: Array[Dictionary] = [
 		"name": "Type Optimization Tests",
 		"scene_path": "res://tests/type_optimization/type_optimization_test.tscn",
 		"description": "StringName type conversion optimization validation"
+	},
+	{
+		"name": "Type Annotation Tests",
+		"scene_path": "res://tests/type_annotation/type_annotation_test.tscn",
+		"description": "Type annotation parsing and constraint validation"
 	}
 ]
 #endregion
@@ -98,6 +103,7 @@ var total_test_count: int = 0
 
 # Output batching optimization
 var output_buffer_pending: PackedStringArray = []  # Pending output messages for batch update
+var output_plain_text_buffer: PackedStringArray = []  # Plain text output for copy/export
 var output_update_timer: Timer = null  # Timer for batch output updates
 const OUTPUT_UPDATE_INTERVAL_MS := 100  # Update output every 100ms
 #endregion
@@ -325,6 +331,7 @@ signal _print_message(message: String)
 
 func _on_print_message(message: String) -> void:
 	test_output_buffer.append(message)
+	output_plain_text_buffer.append(message)
 
 	# Parse test results from output
 	_parse_test_output(message)
@@ -475,6 +482,7 @@ func _display_output(message: String) -> void:
 
 
 func _append_output(color_code: String, message: String) -> void:
+	output_plain_text_buffer.append(message)
 	results_label.append_text(color_code + message + "[/color]" + "\n")
 
 
@@ -487,6 +495,7 @@ func _reset_test_state() -> void:
 	test_stats = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
 	test_output_buffer.clear()
 	output_buffer_pending.clear()  # Clear pending output buffer
+	output_plain_text_buffer.clear()
 	test_results.clear()
 	current_test_name = ""
 	current_category_name = ""
@@ -668,7 +677,8 @@ func _clear_results() -> void:
 
 
 func _on_copy_all_clicked() -> void:
-	DisplayServer.clipboard_set(results_label.text)
+	var output_text := "\n".join(output_plain_text_buffer)
+	DisplayServer.clipboard_set(output_text)
 
 
 func _on_clear_clicked() -> void:
@@ -679,7 +689,8 @@ func _on_export_clicked() -> void:
 	var save_path := "res://test_export_%s.txt" % Time.get_datetime_string_from_system().replace(":", "-")
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file:
-		file.store_string(results_label.text)
+		var output_text := "\n".join(output_plain_text_buffer)
+		file.store_string(output_text)
 		file.close()
 		_append_output(COLOR_INFO, "Results exported to: %s" % save_path)
 	else:
@@ -785,11 +796,11 @@ func _show_test_detail_popup(test_data: Dictionary) -> void:
 	var status_container := HBoxContainer.new()
 	var status_prefix_label := Label.new()
 	status_prefix_label.text = "状态: "
-	var status_label := Label.new()
-	status_label.text = "通过" if test_data.get("status") == "passed" else "失败"
-	status_label.add_theme_color_override("font_color", Color.GREEN if test_data.get("status") == "passed" else Color.RED)
+	var detail_status_label := Label.new()
+	detail_status_label.text = "通过" if test_data.get("status") == "passed" else "失败"
+	detail_status_label.add_theme_color_override("font_color", Color.GREEN if test_data.get("status") == "passed" else Color.RED)
 	status_container.add_child(status_prefix_label)
-	status_container.add_child(status_label)
+	status_container.add_child(detail_status_label)
 
 	var category_label := Label.new()
 	category_label.text = "分类: " + test_data.get("category", "未分类")

@@ -1,0 +1,8 @@
+[configuration]
+
+entry_symbol = "godotsv_library_init"
+compatibility_minimum = 4.5
+
+[libraries]
+
+windows.64 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_debug.x86_64.dll"

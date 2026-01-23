@@ -27,11 +27,17 @@ func repeat_str(s: String, count: int) -> String:
 		result += s
 	return result
 
+
+func _get_variant_type(value: Variant) -> int:
+	return typeof(value)
+
 func _ready() -> void:
 	TestOutputLogger.log("\n" + repeat_str("=", 70))
 	TestOutputLogger.log("GDSV 类型转换优化测试")
 	TestOutputLogger.log("验证 StringName 哈希比较优化后的类型转换正确性")
 	TestOutputLogger.log(repeat_str("=", 70) + "\n")
+
+	print("[TypeOptimizationTest] 开始测试")
 
 	test_start_time = Time.get_ticks_msec()
 
@@ -50,7 +56,7 @@ func _ready() -> void:
 	generate_summary_report()
 
 	# 测试完成，窗口保持打开，等待用户操作
-	# 用户可以通过按 ESC 退出或直接关闭窗口
+	# 用户可以通过 ESC 退出或直接关闭窗口
 
 
 ## 运行所有测试
@@ -85,7 +91,10 @@ func run_all_tests() -> void:
 	# 测试 10: Resource 通用类型转换
 	run_test_resource_type()
 
-	# 测试 11: 批量类型转换性能测试
+	# 测试 11: 自定义类型转换
+	run_test_custom_type()
+
+	# 测试 12: 批量类型转换性能测试
 	run_test_batch_conversion()
 
 
@@ -99,14 +108,14 @@ func run_test_int_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 '123' 转换为 int 类型")
 
-	var result := type_converter.ConvertString("123", "int")
+	var result: Variant = type_converter.convert_string("123", "int")
 
-	if result.get_type() == TYPE_INT and result == 123:
+	if _get_variant_type(result) == TYPE_INT and result == 123:
 		passed_count += 1
 		print_result(test_name, true, "'123' 转换为 123 (int)")
 	else:
 		failed_count += 1
-		print_result(test_name, false, "预期 123 (int)，实际: %s (类型:%d)" % [str(result), result.get_type()])
+		print_result(test_name, false, "预期 123 (int)，实际: %s (类型:%d)" % [str(result), _get_variant_type(result)])
 
 	TestOutputLogger.log("")
 
@@ -116,9 +125,9 @@ func run_test_int_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 '-456' 转换为 int 类型")
 
-	result = type_converter.ConvertString("-456", "int")
+	result = type_converter.convert_string("-456", "int")
 
-	if result.get_type() == TYPE_INT and result == -456:
+	if _get_variant_type(result) == TYPE_INT and result == -456:
 		passed_count += 1
 		print_result(test_name, true, "'-456' 转换为 -456 (int)")
 	else:
@@ -136,9 +145,9 @@ func run_test_float_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 '123.45' 转换为 float 类型")
 
-	var result := type_converter.ConvertString("123.45", "float")
+	var result: Variant = type_converter.convert_string("123.45", "float")
 
-	if result.get_type() == TYPE_FLOAT and abs(result - 123.45) < 0.001:
+	if _get_variant_type(result) == TYPE_FLOAT and abs(result - 123.45) < 0.001:
 		passed_count += 1
 		print_result(test_name, true, "'123.45' 转换为 %s (float)" % str(result))
 	else:
@@ -153,9 +162,9 @@ func run_test_float_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 '1.5e2' 转换为 float 类型")
 
-	result = type_converter.ConvertString("1.5e2", "float")
+	result = type_converter.convert_string("1.5e2", "float")
 
-	if result.get_type() == TYPE_FLOAT and abs(result - 150.0) < 0.001:
+	if _get_variant_type(result) == TYPE_FLOAT and abs(result - 150.0) < 0.001:
 		passed_count += 1
 		print_result(test_name, true, "'1.5e2' 转换为 %s (float)" % str(result))
 	else:
@@ -173,9 +182,9 @@ func run_test_bool_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'true' 转换为 bool 类型")
 
-	var result := type_converter.ConvertString("true", "bool")
+	var result: Variant = type_converter.convert_string("true", "bool")
 
-	if result.get_type() == TYPE_BOOL and result == true:
+	if _get_variant_type(result) == TYPE_BOOL and result == true:
 		passed_count += 1
 		print_result(test_name, true, "'true' 转换为 true (bool)")
 	else:
@@ -190,9 +199,9 @@ func run_test_bool_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'false' 转换为 bool 类型")
 
-	result = type_converter.ConvertString("false", "bool")
+	result = type_converter.convert_string("false", "bool")
 
-	if result.get_type() == TYPE_BOOL and result == false:
+	if _get_variant_type(result) == TYPE_BOOL and result == false:
 		passed_count += 1
 		print_result(test_name, true, "'false' 转换为 false (bool)")
 	else:
@@ -205,10 +214,10 @@ func run_test_bool_type() -> void:
 	test_count += 1
 	test_name = "bool 类型转换 - 数字形式"
 
-	TestOutputLogger.log("测试场景: 将 '1' 转换为 true，'0' 转换为 false")
+	TestOutputLogger.log("测试场景: '1' 转换为 true，'0' 转换为 false")
 
-	var result1 := type_converter.ConvertString("1", "bool")
-	var result0 := type_converter.ConvertString("0", "bool")
+	var result1: Variant = type_converter.convert_string("1", "bool")
+	var result0: Variant = type_converter.convert_string("0", "bool")
 
 	if result1 == true and result0 == false:
 		passed_count += 1
@@ -228,9 +237,9 @@ func run_test_string_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'Hello World' 转换为 String 类型")
 
-	var result := type_converter.ConvertString("Hello World", "string")
+	var result: Variant = type_converter.convert_string("Hello World", "string")
 
-	if result.get_type() == TYPE_STRING and result == "Hello World":
+	if _get_variant_type(result) == TYPE_STRING and result == "Hello World":
 		passed_count += 1
 		print_result(test_name, true, "'Hello World' 转换为 'Hello World' (String)")
 	else:
@@ -245,9 +254,9 @@ func run_test_string_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将空字符串 '' 转换为 String 类型")
 
-	result = type_converter.ConvertString("", "string")
+	result = type_converter.convert_string("", "string")
 
-	if result.get_type() == TYPE_STRING and result == "":
+	if _get_variant_type(result) == TYPE_STRING and result == "":
 		passed_count += 1
 		print_result(test_name, true, "'' 转换为 '' (String)")
 	else:
@@ -262,9 +271,9 @@ func run_test_string_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将包含特殊字符的字符串转换为 String 类型")
 
-	result = type_converter.ConvertString("Hello\nWorld\t\"", "string")
+	result = type_converter.convert_string("Hello\nWorld\t\"", "string")
 
-	if result.get_type() == TYPE_STRING and result == "Hello\nWorld\t\"":
+	if _get_variant_type(result) == TYPE_STRING and result == "Hello\nWorld\t\"":
 		passed_count += 1
 		print_result(test_name, true, "特殊字符正确保留 (String)")
 	else:
@@ -282,14 +291,14 @@ func run_test_stringname_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'AnimationPlayer' 转换为 StringName 类型")
 
-	var result := type_converter.ConvertString("AnimationPlayer", "stringname")
+	var result: Variant = type_converter.convert_string("AnimationPlayer", "stringname")
 
-	if result.get_type() == TYPE_STRING_NAME and str(result) == "AnimationPlayer":
+	if _get_variant_type(result) == TYPE_STRING_NAME and str(result) == "AnimationPlayer":
 		passed_count += 1
 		print_result(test_name, true, "'AnimationPlayer' 转换为 StringName")
 	else:
 		failed_count += 1
-		print_result(test_name, false, "预期 StringName，实际: %s (类型:%d)" % [str(result), result.get_type()])
+		print_result(test_name, false, "预期 StringName，实际: %s (类型:%d)" % [str(result), _get_variant_type(result)])
 
 	TestOutputLogger.log("")
 
@@ -301,11 +310,11 @@ func run_test_stringname_type() -> void:
 
 	var builtin_names = ["ui_accept", "ui_cancel", "ui_up", "ui_down", "ui_left", "ui_right"]
 	var all_passed := true
-	for name in builtin_names:
-		var builtin_result := type_converter.ConvertString(name, "stringname")
-		if builtin_result.get_type() != TYPE_STRING_NAME:
+	for action_name in builtin_names:
+		var builtin_result: Variant = type_converter.convert_string(action_name, "stringname")
+		if _get_variant_type(builtin_result) != TYPE_STRING_NAME:
 			all_passed = false
-			TestOutputLogger.log("  失败: '%s' 转换失败" % name)
+			TestOutputLogger.log("  失败: '%s' 转换失败" % action_name)
 
 	if all_passed:
 		passed_count += 1
@@ -325,9 +334,9 @@ func run_test_array_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'apple,banana,cherry' 转换为数组")
 
-	var result := type_converter.ConvertString("apple,banana,cherry", "array")
+	var result: Variant = type_converter.convert_string("apple,banana,cherry", "array")
 
-	if result.get_type() == TYPE_ARRAY and result.size() == 3 and result[0] == "apple":
+	if _get_variant_type(result) == TYPE_ARRAY and result.size() == 3 and result[0] == "apple":
 		passed_count += 1
 		print_result(test_name, true, "'apple,banana,cherry' 转换为 Array")
 		TestOutputLogger.log("  数组内容: %s" % str(result))
@@ -343,9 +352,9 @@ func run_test_array_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将空字符串 '' 转换为数组")
 
-	result = type_converter.ConvertString("", "array")
+	result = type_converter.convert_string("", "array")
 
-	if result.get_type() == TYPE_ARRAY and result.size() == 0:
+	if _get_variant_type(result) == TYPE_ARRAY and result.size() == 0:
 		passed_count += 1
 		print_result(test_name, true, "'' 转换为空数组")
 	else:
@@ -360,9 +369,9 @@ func run_test_array_type() -> void:
 
 	TestOutputLogger.log("测试场景: 将字符串 'a;b;c' 转换为分号分隔的数组")
 
-	result = type_converter.ConvertString("a;b;c", "array")
+	result = type_converter.convert_string("a;b;c", "array")
 
-	if result.get_type() == TYPE_ARRAY and result.size() == 3:
+	if _get_variant_type(result) == TYPE_ARRAY and result.size() == 3:
 		passed_count += 1
 		print_result(test_name, true, "分号分隔符正确处理")
 	else:
@@ -378,13 +387,13 @@ func run_test_enum_type() -> void:
 	test_count += 1
 	var test_name := "enum 类型转换 - 枚举值验证"
 
-	TestOutputLogger.log("测试场景: 转换为枚举值，验证有效值和非有效值")
+	TestOutputLogger.log("测试场景: 转换为枚举值，验证有效值和无效值")
 
 	# 设置枚举值列表
 	var enum_values := PackedStringArray(["normal", "rare", "epic", "legendary"])
 
 	# 测试有效值
-	var valid_result := type_converter.ConvertString("epic", "enum", enum_values)
+	var valid_result: Variant = type_converter.convert_string("epic", "enum", enum_values)
 
 	if str(valid_result) == "epic":
 		passed_count += 1
@@ -401,7 +410,7 @@ func run_test_enum_type() -> void:
 
 	TestOutputLogger.log("测试场景: 尝试转换无效的枚举值 'invalid'")
 
-	var invalid_result := type_converter.ConvertString("invalid", "enum", enum_values)
+	var invalid_result: Variant = type_converter.convert_string("invalid", "enum", enum_values)
 
 	if str(invalid_result).is_empty():
 		passed_count += 1
@@ -423,20 +432,20 @@ func run_test_texture2d_type() -> void:
 
 	# 使用内置图标或测试资源路径
 	var icon_path := "res://icon.svg"
-	var result := type_converter.ConvertString(icon_path, "texture2d")
+	var result: Variant = type_converter.convert_string(icon_path, "texture2d")
 
 	# 注意：如果文件不存在，测试应该优雅处理
-	if result.get_type() == TYPE_OBJECT:
+	if _get_variant_type(result) == TYPE_OBJECT:
 		passed_count += 1
-		print_result(test_name, true, "Texture2D 资源加载成功或处理正确")
+		print_result(test_name, true, "Texture2D 资源加载成功或处理正常")
 	else:
 		# 在测试环境中，文件可能不存在
-		if result == null or (result.get_type() == TYPE_NIL):
+		if result == null or (_get_variant_type(result) == TYPE_NIL):
 			passed_count += 1
 			print_result(test_name, true, "Texture2D 资源不存在时返回 null (符合预期)")
 		else:
 			failed_count += 1
-			print_result(test_name, false, "Texture2D 转换异常，结果类型: %d" % result.get_type())
+			print_result(test_name, false, "Texture2D 转换异常，结果类型: %d" % _get_variant_type(result))
 
 
 ## 测试 9: PackedScene 资源类型转换
@@ -451,18 +460,18 @@ func run_test_packedscene_type() -> void:
 
 	# 使用测试场景路径
 	var scene_path := "res://tests/basic_io/basic_io_test.tscn"
-	var result := type_converter.ConvertString(scene_path, "packedscene")
+	var result: Variant = type_converter.convert_string(scene_path, "packedscene")
 
-	if result.get_type() == TYPE_OBJECT:
+	if _get_variant_type(result) == TYPE_OBJECT:
 		passed_count += 1
-		print_result(test_name, true, "PackedScene 资源加载成功或处理正确")
+		print_result(test_name, true, "PackedScene 资源加载成功或处理正常")
 	else:
-		if result == null or (result.get_type() == TYPE_NIL):
+		if result == null or (_get_variant_type(result) == TYPE_NIL):
 			passed_count += 1
 			print_result(test_name, true, "PackedScene 资源不存在时返回 null (符合预期)")
 		else:
 			failed_count += 1
-			print_result(test_name, false, "PackedScene 转换异常，结果类型: %d" % result.get_type())
+			print_result(test_name, false, "PackedScene 转换异常，结果类型: %d" % _get_variant_type(result))
 
 
 ## 测试 10: Resource 通用类型转换
@@ -476,23 +485,47 @@ func run_test_resource_type() -> void:
 	TestOutputLogger.log("测试场景: 尝试加载通用 Resource")
 
 	var resource_path := "res://icon.svg"
-	var result := type_converter.ConvertString(resource_path, "resource")
+	var result: Variant = type_converter.convert_string(resource_path, "resource")
 
-	if result.get_type() == TYPE_OBJECT:
+	if _get_variant_type(result) == TYPE_OBJECT:
 		passed_count += 1
-		print_result(test_name, true, "Resource 资源加载成功或处理正确")
+		print_result(test_name, true, "Resource 资源加载成功或处理正常")
 	else:
-		if result == null or (result.get_type() == TYPE_NIL):
+		if result == null or (_get_variant_type(result) == TYPE_NIL):
 			passed_count += 1
 			print_result(test_name, true, "Resource 资源不存在时返回 null (符合预期)")
 		else:
 			failed_count += 1
-			print_result(test_name, false, "Resource 转换异常，结果类型: %d" % result.get_type())
+			print_result(test_name, false, "Resource 转换异常，结果类型: %d" % _get_variant_type(result))
 
 
-## 测试 11: 批量类型转换性能测试
+## 测试 11: 自定义类型转换
+func run_test_custom_type() -> void:
+	TestOutputLogger.log("\n[测试 11] 自定义类型转换")
+	TestOutputLogger.log(repeat_str("-", 70))
+
+	test_count += 1
+	var test_name := "自定义类型转换 - 未注册类型"
+
+	TestOutputLogger.log("测试场景: 尝试转换未注册的自定义类型 'my_custom'")
+
+	var result: Dictionary = type_converter.convert_string_result("custom_value", "my_custom")
+	var success := bool(result.get("success", false))
+	var error_message := str(result.get("error_message", ""))
+
+	if not success:
+		passed_count += 1
+		print_result(test_name, true, "未注册类型返回失败 (符合预期)")
+		if not error_message.is_empty():
+			TestOutputLogger.log("  错误信息: %s" % error_message)
+	else:
+		failed_count += 1
+		print_result(test_name, false, "未注册类型应失败，实际成功: %s" % str(result.get("value")))
+
+
+## 测试 12: 批量类型转换性能测试
 func run_test_batch_conversion() -> void:
-	TestOutputLogger.log("\n[测试 11] 批量类型转换性能测试")
+	TestOutputLogger.log("\n[测试 12] 批量类型转换性能测试")
 	TestOutputLogger.log(repeat_str("-", 70))
 
 	test_count += 1
@@ -512,36 +545,36 @@ func run_test_batch_conversion() -> void:
 	test_params.append("")  # array 无需额外参数
 
 	var start_time := Time.get_ticks_msec()
-	var results := type_converter.ConvertRow(test_row, test_types, test_params)
+	var results: Array = type_converter.convert_row(test_row, test_types, test_params)
 	var elapsed := Time.get_ticks_msec() - start_time
 
 	if results.size() == 6:
 		var all_correct := true
 
 		# 验证每个结果
-		if results[0].get_type() != TYPE_INT or results[0] != 123:
+		if _get_variant_type(results[0]) != TYPE_INT or results[0] != 123:
 			all_correct = false
-		if results[1].get_type() != TYPE_FLOAT or abs(results[1] - 45.67) > 0.01:
+		if _get_variant_type(results[1]) != TYPE_FLOAT or abs(results[1] - 45.67) > 0.01:
 			all_correct = false
-		if results[2].get_type() != TYPE_BOOL or results[2] != true:
+		if _get_variant_type(results[2]) != TYPE_BOOL or results[2] != true:
 			all_correct = false
-		if results[3].get_type() != TYPE_STRING or results[3] != "Hello":
+		if _get_variant_type(results[3]) != TYPE_STRING or results[3] != "Hello":
 			all_correct = false
-		if results[4].get_type() != TYPE_STRING_NAME:
+		if _get_variant_type(results[4]) != TYPE_STRING_NAME:
 			all_correct = false
-		if results[5].get_type() != TYPE_ARRAY:
+		if _get_variant_type(results[5]) != TYPE_ARRAY:
 			all_correct = false
 
 		if all_correct:
 			passed_count += 1
 			print_result(test_name, true, "批量转换成功，耗时: %d ms" % elapsed)
 			TestOutputLogger.log("  转换结果:")
-			TestOutputLogger.log("    [0] int: %s (类型: %d)" % [str(results[0]), results[0].get_type()])
-			TestOutputLogger.log("    [1] float: %s (类型: %d)" % [str(results[1]), results[1].get_type()])
-			TestOutputLogger.log("    [2] bool: %s (类型: %d)" % [str(results[2]), results[2].get_type()])
-			TestOutputLogger.log("    [3] string: %s (类型: %d)" % [str(results[3]), results[3].get_type()])
-			TestOutputLogger.log("    [4] stringname: %s (类型: %d)" % [str(results[4]), results[4].get_type()])
-			TestOutputLogger.log("    [5] array: %s (类型: %d)" % [str(results[5]), results[5].get_type()])
+			TestOutputLogger.log("    [0] int: %s (类型: %d)" % [str(results[0]), _get_variant_type(results[0])])
+			TestOutputLogger.log("    [1] float: %s (类型: %d)" % [str(results[1]), _get_variant_type(results[1])])
+			TestOutputLogger.log("    [2] bool: %s (类型: %d)" % [str(results[2]), _get_variant_type(results[2])])
+			TestOutputLogger.log("    [3] string: %s (类型: %d)" % [str(results[3]), _get_variant_type(results[3])])
+			TestOutputLogger.log("    [4] stringname: %s (类型: %d)" % [str(results[4]), _get_variant_type(results[4])])
+			TestOutputLogger.log("    [5] array: %s (类型: %d)" % [str(results[5]), _get_variant_type(results[5])])
 		else:
 			failed_count += 1
 			print_result(test_name, false, "批量转换结果类型不正确")
@@ -555,6 +588,7 @@ func print_result(_test_name: String, passed: bool, message: String) -> void:
 	var status := "[通过]" if passed else "[失败]"
 	var prefix := "  " if passed else "  "
 	TestOutputLogger.log("%s %s %s" % [prefix, status, message])
+	print("[TypeOptimizationTest] %s %s" % [status, message])
 
 
 ## 生成汇总报告
@@ -583,10 +617,17 @@ func generate_summary_report() -> void:
 
 	# 根据结果打印不同信息
 	if failed_count > 0:
-		TestOutputLogger.log("测试失败！请检查上述错误信息。")
+		TestOutputLogger.log("测试失败！请检查上述错误信息")
 	else:
 		TestOutputLogger.log("所有测试通过！类型转换优化验证成功！")
 	TestOutputLogger.log("\n测试窗口将保持打开，按 ESC 键可退出")
+
+	print("[TypeOptimizationTest] 汇总: 总数=%d 通过=%d 失败=%d 成功率=%.1f%% 耗时=%.3f秒" % [test_count, passed_count, failed_count, passed_count * 100.0 / test_count if test_count > 0 else 0.0, elapsed])
+
+	if failed_count > 0:
+		print("[TypeOptimizationTest] 测试失败，请检查详细日志")
+	else:
+		print("[TypeOptimizationTest] 所有测试通过")
 
 
 ## 输入处理 - 允许用户按 ESC 退出

@@ -70,7 +70,7 @@ func test1_read_10k_rows() -> void:
 		TestOutputLogger.log("  [失败] 测试文件不存在")
 		return
 
-	var file_size := FileAccess.get_open_error()
+	var file_size := 0
 	var file := FileAccess.open(FILE_10K, FileAccess.READ)
 	if file != null:
 		file_size = file.get_length()
@@ -95,8 +95,8 @@ func test1_read_10k_rows() -> void:
 		TestOutputLogger.log("  加载时间: %.2f ms" % load_time_ms)
 		TestOutputLogger.log("  行数: %d" % row_count)
 		TestOutputLogger.log("  列数: %d" % column_count)
-		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0))
-		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0.0))
+		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0.0))
 		TestOutputLogger.log("  [通过] 成功读取大文件")
 	else:
 		TestOutputLogger.log("\n加载失败: %s" % processor.last_error)
@@ -140,9 +140,9 @@ func test2_read_50k_rows() -> void:
 		TestOutputLogger.log("  加载时间: %.2f ms" % load_time_ms)
 		TestOutputLogger.log("  行数: %d" % row_count)
 		TestOutputLogger.log("  列数: %d" % column_count)
-		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0))
-		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
-		TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (load_time_ms / 1000.0) if load_time_ms > 0 else 0))
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (load_time_ms / row_count if row_count > 0 else 0.0))
+		TestOutputLogger.log("  读取速度: %.2f 行/秒" % (row_count / (load_time_ms / 1000.0) if load_time_ms > 0 else 0.0))
+		TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (load_time_ms / 1000.0) if load_time_ms > 0 else 0.0))
 		TestOutputLogger.log("  [通过] 成功读取超大文件")
 	else:
 		TestOutputLogger.log("\n加载失败: %s" % processor.last_error)
@@ -202,8 +202,8 @@ func test3_write_10k_rows() -> void:
 		TestOutputLogger.log("  数据生成时间: %.2f ms" % data_gen_time_ms)
 		TestOutputLogger.log("  写入时间: %.2f ms" % write_time_ms)
 		TestOutputLogger.log("  文件大小: %.2f MB" % (file_size / 1024.0 / 1024.0))
-		TestOutputLogger.log("  平均每行时间: %.4f ms" % (write_time_ms / row_count if row_count > 0 else 0))
-		TestOutputLogger.log("  写入速度: %.2f 行/秒" % (row_count / (write_time_ms / 1000.0) if write_time_ms > 0 else 0))
+		TestOutputLogger.log("  平均每行时间: %.4f ms" % (write_time_ms / row_count if row_count > 0 else 0.0))
+		TestOutputLogger.log("  写入速度: %.2f 行/秒" % (row_count / (write_time_ms / 1000.0) if write_time_ms > 0 else 0.0))
 
 		# 验证读取
 		var verify_processor := GDSVDataProcessor.new()
@@ -292,9 +292,9 @@ func test4_stream_read_performance() -> void:
 	TestOutputLogger.log("  读取时间: %.2f ms" % read_time_ms)
 	TestOutputLogger.log("  总行数: %d" % line_count)
 	TestOutputLogger.log("  总批次数: %d" % total_batches)
-	TestOutputLogger.log("  平均每批时间: %.4f ms" % (read_time_ms / total_batches if total_batches > 0 else 0))
-	TestOutputLogger.log("  读取速度: %.2f 行/秒" % (line_count / (read_time_ms / 1000.0) if read_time_ms > 0 else 0))
-	TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (read_time_ms / 1000.0) if read_time_ms > 0 else 0))
+	TestOutputLogger.log("  平均每批时间: %.4f ms" % (read_time_ms / total_batches if total_batches > 0 else 0.0))
+	TestOutputLogger.log("  读取速度: %.2f 行/秒" % (line_count / (read_time_ms / 1000.0) if read_time_ms > 0 else 0.0))
+	TestOutputLogger.log("  吞吐量: %.2f MB/秒" % ((file_size / 1024.0 / 1024.0) / (read_time_ms / 1000.0) if read_time_ms > 0 else 0.0))
 
 	# 测试批量读取性能
 	TestOutputLogger.log("\n批量读取性能测试:")
@@ -304,7 +304,7 @@ func test4_stream_read_performance() -> void:
 		var reader := GDSVStreamReader.new()
 		var batch_open_time := Time.get_ticks_usec()
 		reader.open_file(FILE_10K, true, "\t")
-		var batch_open_time_ms := (Time.get_ticks_usec() - batch_open_time) / 1000.0
+		var _batch_open_time_ms := (Time.get_ticks_usec() - batch_open_time) / 1000.0
 
 		var batch_read_time := Time.get_ticks_usec()
 		var batch_line_count := 0
@@ -317,7 +317,7 @@ func test4_stream_read_performance() -> void:
 		reader.close_file()
 
 		TestOutputLogger.log("  批量大小 %4d: 读取时间 %.2f ms, 速度 %.2f 行/秒" % [
-			batch, batch_read_time_ms, batch_line_count / (batch_read_time_ms / 1000.0) if batch_read_time_ms > 0 else 0
+			batch, batch_read_time_ms, batch_line_count / (batch_read_time_ms / 1000.0) if batch_read_time_ms > 0 else 0.0
 		])
 
 	TestOutputLogger.log("  [通过] 流式读取性能测试完成")

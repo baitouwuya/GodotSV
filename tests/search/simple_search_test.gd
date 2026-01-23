@@ -477,7 +477,7 @@ func run_test_column_specific_search() -> void:
 
 
 ## 打印单个测试结果
-func print_result(test_name: String, passed: bool, message: String) -> void:
+func print_result(_test_name: String, passed: bool, message: String) -> void:
 	var status := "[通过]" if passed else "[失败]"
 	var prefix := "  " if passed else "  "
 	TestOutputLogger.log("%s %s %s" % [prefix, status, message])

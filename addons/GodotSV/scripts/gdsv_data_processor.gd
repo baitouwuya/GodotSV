@@ -684,10 +684,18 @@ func rename_column(column_index: int, new_name: String) -> bool:
 func parse_type_annotations(header_row: PackedStringArray) -> Array:
 	_reset_error_state()
 
-	# 优先解析 GDSV 列定义（<name>[:<type>][=<default>])
-	var gdsv_parser := GDSVColumnParser.new()
-	if gdsv_parser.has_gdsv_syntax(header_row):
-		return parse_gdsv_definitions(header_row)
+	# 优先检测真正的类型注解语法，避免被 GDSV 列定义语法误判
+	var has_type_annotations := false
+	for field in header_row:
+		if GDSVTypeAnnotationParser.is_annotation_valid(str(field)):
+			has_type_annotations = true
+			break
+	
+	if not has_type_annotations:
+		# 仅在没有注解语法时解析 GDSV 列定义（<name>[:<type>][=<default>])
+		var gdsv_parser := GDSVColumnParser.new()
+		if gdsv_parser.has_gdsv_syntax(header_row):
+			return parse_gdsv_definitions(header_row)
 	
 	# 使用C++解析器解析表头，返回清理后的字段名
 	var cleaned_names: PackedStringArray = _type_annotation_parser.parse_header(header_row)

@@ -1,0 +1,3 @@
+*id:int	name:string=Unknown	active:bool=false	rarity:enum(common,rare,epic)	tags:Array[String]
+1	Alice	true	common	red,blue
+2	Bob	false	rare	green

@@ -83,7 +83,7 @@ func _test_p0_search(table_data: GDSVTableData, size: int) -> Dictionary:
 		results_dict[keyword] = {
 			"time_ms": elapsed,
 			"matches": results.size(),
-			"throughput": size / (elapsed / 1000.0) if elapsed > 0 else 0
+			"throughput": size / (elapsed / 1000.0) if elapsed > 0 else 0.0
 		}
 	
 	return results_dict
@@ -212,7 +212,7 @@ func _create_test_data(row_count: int) -> Dictionary:
 	var rows: Array[PackedStringArray] = []
 	var header := PackedStringArray(["id", "name", "email", "status", "date"])
 	
-	var keywords = ["测试", "data", "error", "success", "warning", "apple", "banana", "orange"]
+	var _keywords = ["测试", "data", "error", "success", "warning", "apple", "banana", "orange"]
 	var statuses = ["active", "inactive", "pending", "error", "success"]
 	var names = ["Alice", "Bob", "Charlie", "David", "Eve"]
 	
