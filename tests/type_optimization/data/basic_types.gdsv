@@ -1,0 +1,6 @@
+id:int	name: String	age:int	is_active:bool	score:float	tags:Array	enum_field:enum(normal,rare,epic,legendary)	animation:StringName	texture:Texture2D	scene:PackedScene
+1	Test User	25	true	95.5	item,weapon	normal	ui_accept	res://icon.svg	res://tests/basic_io/basic_io_test.tscn
+2	Admin User	30	true	100.0	admin,special	epic	ui_cancel	res://icon.svg	res://tests/basic_io/basic_io_test.tscn
+3	Guest User	0	false	50.25	guest	normal	ui_up	res://icon.svg	res://tests/basic_io/basic_io_test.tscn
+4	Premium User	35	true	88.75	vip,pro	legendary	ui_down	res://icon.svg	res://tests/basic_io/basic_io_test.tscn
+5	Trial User	1	false	33.33	trial	rare	ui_left	res://icon.svg	res://tests/basic_io/basic_io_test.tscn

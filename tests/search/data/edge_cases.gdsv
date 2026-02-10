@@ -1,0 +1,12 @@
+id:int	name:String	value:String	nested:Array
+1	Normal	Value	["item1", "item2"]
+2		EmptyName	["empty", "name"]
+3	Whitespace	Contains Space	["with", "whitespace"]
+4	Tab		Tabbed	["tab", "\tvalue"]
+5	Quote	"Quoted"	["has", "\"quote\""]
+6	Comma	Value,With,Comma	["comma", "values"]
+7	Null			["null", "value", ]
+8	Special	!@#$%^&*()	["special", "!@#"]
+9	Unicode	测试数据	["中文", "日本語"]
+10	Multi	Line1
+Line2	["multi", "line"]

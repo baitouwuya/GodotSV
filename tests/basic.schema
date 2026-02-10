@@ -1,0 +1,44 @@
+{
+	"fields": [
+		{
+			"name": "id",
+			"required": false,
+			"type": "int"
+		},
+		{
+			"array_type": "",
+			"default_value": "",
+			"name": "name",
+			"required": false,
+			"type": "string"
+		},
+		{
+			"array_type": "",
+			"default_value": "",
+			"name": "hp",
+			"required": false,
+			"type": "int"
+		},
+		{
+			"array_type": "",
+			"default_value": "",
+			"name": "is_boss",
+			"required": false,
+			"type": "bool"
+		},
+		{
+			"array_type": "",
+			"default_value": "",
+			"name": "ratio",
+			"required": false,
+			"type": "float"
+		},
+		{
+			"array_type": "",
+			"default_value": "",
+			"name": "Column_6",
+			"required": false,
+			"type": "duration"
+		}
+	]
+}

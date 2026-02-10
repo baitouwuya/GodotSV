@@ -1,0 +1,46 @@
+[configuration]
+
+entry_symbol = "godotsv_library_init"
+compatibility_minimum = 4.5
+
+[libraries]
+
+; Windows
+windows.debug.x86_64 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_release.x86_64.dll"
+windows.debug.x86_32 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_debug.x86_32.dll"
+windows.release.x86_32 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_release.x86_32.dll"
+windows.debug.arm64 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_debug.arm64.dll"
+windows.release.arm64 = "res://addons/GodotSV/bin/windows/godotsv.windows.template_release.arm64.dll"
+
+; Linux
+linux.debug.x86_64 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_release.x86_64.so"
+linux.debug.x86_32 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_debug.x86_32.so"
+linux.release.x86_32 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_release.x86_32.so"
+linux.debug.arm64 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_debug.arm64.so"
+linux.release.arm64 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_release.arm64.so"
+linux.debug.arm32 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_debug.arm32.so"
+linux.release.arm32 = "res://addons/GodotSV/bin/linux/libgodotsv.linux.template_release.arm32.so"
+
+; macOS (universal)
+macos.debug = "res://addons/GodotSV/bin/macos/libgodotsv.macos.template_debug.framework"
+macos.release = "res://addons/GodotSV/bin/macos/libgodotsv.macos.template_release.framework"
+
+; Android
+android.debug.x86_64 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_debug.x86_64.so"
+android.release.x86_64 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_release.x86_64.so"
+android.debug.x86_32 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_debug.x86_32.so"
+android.release.x86_32 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_release.x86_32.so"
+android.debug.arm64 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_debug.arm64.so"
+android.release.arm64 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_release.arm64.so"
+android.debug.arm32 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_debug.arm32.so"
+android.release.arm32 = "res://addons/GodotSV/bin/android/libgodotsv.android.template_release.arm32.so"
+
+; iOS
+ios.debug = "res://addons/GodotSV/bin/ios/libgodotsv.ios.template_debug.arm64.a"
+ios.release = "res://addons/GodotSV/bin/ios/libgodotsv.ios.template_release.arm64.a"
+
+; Web
+web.debug.wasm32 = "res://addons/GodotSV/bin/web/libgodotsv.web.template_debug.wasm32.wasm"
+web.release.wasm32 = "res://addons/GodotSV/bin/web/libgodotsv.web.template_release.wasm32.wasm"

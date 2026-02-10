@@ -1,0 +1,11 @@
+id:int	name:String	age:int	city:String	active:bool	score:float
+1	Alice	25	New York	true	95.5
+2	Bob	30	San Francisco	true	87.0
+3	Charlie	35	Seattle	false	72.3
+4	Diana	28	Austin	true	91.2
+5	Eve	22	Boston	false	88.7
+6	Frank	40	Chicago	true	76.5
+7	Grace	26	Denver	false	94.1
+8	Henry	33	Phoenix	true	82.9
+9	Iris	29	Portland	true	89.4
+10	Jack	31	Miami	false	79.6

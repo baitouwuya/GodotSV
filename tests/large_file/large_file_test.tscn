@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvh5j8k9l2m3n"]
+
+[ext_resource type="Script" path="res://tests/large_file/large_file_test.gd" id="1"]
+
+[node name="LargeFileTest" type="Node"]
+script = ExtResource("1")
