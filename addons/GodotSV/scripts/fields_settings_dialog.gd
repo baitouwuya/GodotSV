@@ -1904,7 +1904,10 @@ func _get_grip_icon() -> Texture2D:
 func _get_editor_type_icon(type_name: String) -> Texture2D:
 	if not Engine.is_editor_hint():
 		return null
-	var theme: Theme = EditorInterface.get_editor_theme()
+	var ei: Object = Engine.get_singleton("EditorInterface")
+	if not ei:
+		return null
+	var theme: Theme = ei.get_editor_theme()
 	if not theme:
 		return null
 	if theme.has_icon(type_name, "EditorIcons"):

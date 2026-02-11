@@ -19,10 +19,6 @@ run/main_scene="res://standalone_editor/standalone_editor.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
-[autoload]
-
-TestOutputLogger="*res://tests/test_output_logger.gd"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/GodotSV/plugin.cfg")

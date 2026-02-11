@@ -127,7 +127,10 @@ func is_dark_theme() -> bool:
 	elif current_theme == THEME_AUTO:
 		if not Engine.is_editor_hint():
 			return true # 独立运行时默认暗色主题
-		var editor_settings := EditorInterface.get_editor_settings()
+		var ei: Object = Engine.get_singleton("EditorInterface")
+		if not ei:
+			return true
+		var editor_settings: Object = ei.get_editor_settings()
 		var base_color: Color = editor_settings.get_setting("interface/theme/base_color")
 		# 通过背景色亮度判断暗色主题（亮度 < 0.5 视为暗色）
 		return base_color.get_luminance() < 0.5
