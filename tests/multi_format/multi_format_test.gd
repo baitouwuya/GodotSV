@@ -204,8 +204,8 @@ func run_test_3_read_gdsv() -> void:
 			TestOutputLogger.log("  行 %d: %s" % [i, str(row)])
 
 	# GDSV 数据验证
-	var expected_rows := 1  # basic.gdsv 有 1 数据行
-	var expected_cols := 5  # id:int=, name:string=, hp:int=, is_boss:bool=, ratio:float=
+	var expected_rows := 4  # basic.gdsv 有 4 数据行
+	var expected_cols := 6  # id:int, name:string, hp:int, is_boss:bool, ratio:float, Column_6:duration
 
 	if row_count >= expected_rows and column_count == expected_cols:
 		passed_count += 1
