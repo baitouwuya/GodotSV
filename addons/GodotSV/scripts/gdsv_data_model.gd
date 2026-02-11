@@ -161,6 +161,27 @@ func get_all_rows() -> Array[PackedStringArray]:
 	return data_processor.get_all_rows()
 
 
+## 获取指定字段的描述（来自 #@desc 注解）
+func get_field_description(column_index: int) -> String:
+	if not data_processor:
+		return ""
+	var header := get_header()
+	if column_index < 0 or column_index >= header.size():
+		return ""
+	return data_processor.get_field_description(header[column_index])
+
+
+## 设置指定字段的描述（更新 #@desc 注解）
+func set_field_description(column_index: int, description: String) -> void:
+	if not data_processor:
+		return
+	var header := get_header()
+	if column_index < 0 or column_index >= header.size():
+		return
+	data_processor.set_field_description(header[column_index], description)
+	modified = true
+
+
 ## 兼容旧接口：返回与 `get_all_rows()` 等价的数据快照。
 ## 注意：该方法仅用于向后兼容；新代码请使用 `get_all_rows()`。
 func to_array() -> Array[PackedStringArray]:
@@ -343,7 +364,10 @@ func remove_column(column_index: int) -> bool:
 		undo_redo.commit_action()
 	else:
 		data_processor.remove_column(column_index)
-	
+
+	# 同步清理该字段的全部注解键
+	data_processor.remove_annotation_field(column_name)
+
 	if column_index < _type_definitions.size():
 		_type_definitions.remove_at(column_index)
 	
@@ -398,10 +422,13 @@ func rename_column(column_index: int, new_name: String) -> bool:
 	if enable_undo_redo:
 		undo_redo.create_action("Rename Column")
 		undo_redo.add_do_method(data_processor.rename_column.bind(column_index, new_name))
+		undo_redo.add_do_method(data_processor.rename_annotation_field.bind(old_name, new_name))
+		undo_redo.add_undo_method(data_processor.rename_annotation_field.bind(new_name, old_name))
 		undo_redo.add_undo_method(data_processor.rename_column.bind(column_index, old_name))
 		undo_redo.commit_action()
 	else:
 		data_processor.rename_column(column_index, new_name)
+		data_processor.rename_annotation_field(old_name, new_name)
 
 	if column_index < _type_definitions.size():
 		var type_def: Dictionary = _type_definitions[column_index]

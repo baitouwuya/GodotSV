@@ -72,6 +72,9 @@ var _original_header: PackedStringArray
 
 ## 清理后的表头（去除类型标注）
 var _cleaned_header: PackedStringArray
+
+## #@ 注解数据（结构：{keyword: {field_name: value}}）
+var _annotations: Dictionary = {}
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
@@ -96,6 +99,7 @@ func reset() -> void:
 	_reset_error_state()
 	_original_header.clear()
 	_cleaned_header.clear()
+	_annotations.clear()
 	_table_data.clear()
 #endregion
 
@@ -148,21 +152,9 @@ func load_gdsv_content(content: String, file_path: String = "", options: Diction
 		content = content.substr(1)
 
 	# 兼容：当文件包含表头时，允许在表头前出现注释/空行
-	# 注意：GDSVParser 会按“行索引 i==0”来判断表头，因此这里要先把前置注释/空行移除。
-	var normalized_content := content
-	var lines := normalized_content.split("\n", false)
-	if not lines.is_empty():
-		var start_idx := 0
-		while start_idx < lines.size():
-			var line := lines[start_idx].strip_edges()
-			if line.is_empty() or line.begins_with("#"):
-				start_idx += 1
-				continue
-			break
-		if start_idx > 0:
-			normalized_content = "\n".join(lines.slice(start_idx))
-
-	var gdsv_data: Array = _gdsv_parser.parse_from_string(normalized_content, true, default_delimiter)
+	# C++ 解析器已使用 header_parsed 标志正确处理前置注释行，
+	# 但为保持向后兼容，仍传入原始内容（包含 #@ 注解行）。
+	var gdsv_data: Array = _gdsv_parser.parse_from_string(content, true, default_delimiter)
 
 	if _gdsv_parser.has_error():
 		_set_error(_gdsv_parser.get_last_error())
@@ -171,6 +163,7 @@ func load_gdsv_content(content: String, file_path: String = "", options: Diction
 
 	_original_header = _gdsv_parser.get_header()
 	_cleaned_header = _extract_clean_header()
+	_annotations = _gdsv_parser.get_annotations()
 
 	var rows: Array[PackedStringArray] = []
 	for row in gdsv_data:
@@ -266,10 +259,31 @@ func get_file_modified_time(file_path: String) -> int:
 ## 获取 GDSV 字符串
 func get_gdsv_string() -> String:
 	var rows: Array[PackedStringArray] = _get_all_rows_internal()
-	if rows.is_empty():
+	# 至少有表头才能序列化（允许 0 数据行）
+	if _original_header.is_empty():
 		return ""
 
 	var gdsv_lines := PackedStringArray()
+
+	# 输出 #@ 注解行（在表头之前）
+	# 稳定序列化顺序：keyword 与 field_name 均按字典序输出
+	var sorted_keywords: Array = _annotations.keys()
+	sorted_keywords.sort()
+
+	for keyword in sorted_keywords:
+		var fields_var: Variant = _annotations.get(keyword, {})
+		if not (fields_var is Dictionary):
+			continue
+		var fields: Dictionary = fields_var
+		var sorted_field_names: Array = fields.keys()
+		sorted_field_names.sort()
+
+		for field_name in sorted_field_names:
+			var value: String = str(fields[field_name])
+			if value.is_empty():
+				gdsv_lines.append("#@%s %s" % [keyword, field_name])
+			else:
+				gdsv_lines.append("#@%s %s %s" % [keyword, field_name, value])
 
 	gdsv_lines.append(_join_gdsv_row(_original_header))
 
@@ -512,6 +526,74 @@ func _get_all_rows_internal() -> Array[PackedStringArray]:
 		if row is PackedStringArray:
 			result.append(row)
 	return result
+#endregion
+
+#region 注解功能 Annotation Features
+## 获取所有注解数据
+func get_annotations() -> Dictionary:
+	return _annotations.duplicate(true)
+
+
+## 获取指定字段的描述（来自 #@desc 注解）
+func get_field_description(field_name: String) -> String:
+	var desc_dict: Dictionary = _annotations.get("desc", {})
+	return str(desc_dict.get(field_name, ""))
+
+
+## 设置指定字段的描述（更新 #@desc 注解）
+func set_field_description(field_name: String, description: String) -> void:
+	var desc_dict: Dictionary = _annotations.get("desc", {})
+	if description.is_empty():
+		desc_dict.erase(field_name)
+	else:
+		desc_dict[field_name] = description
+	if desc_dict.is_empty():
+		_annotations.erase("desc")
+	else:
+		_annotations["desc"] = desc_dict
+
+
+## 重命名字段对应的所有注解键（对全部 keyword 生效）
+func rename_annotation_field(old_field_name: String, new_field_name: String) -> void:
+	if old_field_name.is_empty() or new_field_name.is_empty() or old_field_name == new_field_name:
+		return
+
+	for keyword in _annotations.keys():
+		var fields_var: Variant = _annotations.get(keyword)
+		if not (fields_var is Dictionary):
+			continue
+		var fields: Dictionary = fields_var
+		if not fields.has(old_field_name):
+			continue
+
+		var value: Variant = fields[old_field_name]
+		fields.erase(old_field_name)
+		fields[new_field_name] = value
+		_annotations[keyword] = fields
+
+
+## 删除字段对应的所有注解键（对全部 keyword 生效）
+func remove_annotation_field(field_name: String) -> void:
+	if field_name.is_empty():
+		return
+
+	var empty_keywords: Array[String] = []
+	for keyword in _annotations.keys():
+		var fields_var: Variant = _annotations.get(keyword)
+		if not (fields_var is Dictionary):
+			continue
+		var fields: Dictionary = fields_var
+		if not fields.has(field_name):
+			continue
+
+		fields.erase(field_name)
+		if fields.is_empty():
+			empty_keywords.append(str(keyword))
+		else:
+			_annotations[keyword] = fields
+
+	for keyword in empty_keywords:
+		_annotations.erase(keyword)
 #endregion
 
 #region 数据修改功能 Data Modification Features
@@ -1194,6 +1276,7 @@ func clear_data() -> void:
 	_table_data.clear()
 	_original_header.clear()
 	_cleaned_header.clear()
+	_annotations.clear()
 	data_changed.emit("clear", {})
 
 

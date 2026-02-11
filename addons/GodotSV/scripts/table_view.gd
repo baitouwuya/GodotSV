@@ -185,6 +185,18 @@ var _image_cache: Dictionary = {}
 
 ## 类型图标缓存（type_name → Texture2D，避免每帧查询 EditorInterface）
 var _type_icon_cache: Dictionary = {}
+
+## 表头悬停列索引（-1 表示不在表头上）
+var _hover_header_col: int = -1
+
+## 表头 tooltip 弹出面板
+var _header_tooltip: PanelContainer
+
+## 表头 tooltip 标签
+var _header_tooltip_label: Label
+
+## 表头 tooltip 延迟定时器
+var _header_tooltip_timer: Timer
 #endregion
 
 #region 生命周期方法 Lifecycle Methods
@@ -192,6 +204,7 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
 	_build_ui()
 	_initialize_context_menu()
+	_initialize_header_tooltip()
 	_connect_signals()
 	_call_deferred_refresh_after_layout()
 	resized.connect(_call_deferred_refresh_after_layout)
@@ -204,6 +217,10 @@ func _exit_tree() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_call_deferred_refresh_after_layout()
+	elif what == NOTIFICATION_MOUSE_EXIT:
+		if _hover_header_col >= 0:
+			_hover_header_col = -1
+			_hide_header_tooltip()
 
 
 func _call_deferred_refresh_after_layout() -> void:
@@ -849,8 +866,25 @@ func _gui_input(event: InputEvent) -> void:
 					if hover_cell != _hover_cell:
 						_hover_cell = hover_cell
 						_request_redraw()
+					# 离开表头区域，隐藏 tooltip
+					if _hover_header_col >= 0:
+						_hover_header_col = -1
+						_hide_header_tooltip()
+				elif is_in_header:
+					# 追踪表头悬停列，用于显示字段描述 tooltip
+					var col := _get_column_from_position(mouse_event.position)
+					if col != _hover_header_col:
+						_hover_header_col = col
+						_hide_header_tooltip()
+						if col >= 0:
+							_start_header_tooltip_timer(col, mouse_event.position)
+					if _hover_cell.x >= 0 or _hover_cell.y >= 0:
+						_hover_cell = Vector2i(-1, -1)
+						_request_redraw()
 				elif _hover_cell.x >= 0 or _hover_cell.y >= 0:
 					_hover_cell = Vector2i(-1, -1)
+					_hover_header_col = -1
+					_hide_header_tooltip()
 					_request_redraw()
 
 			if _resizing_column >= 0:
@@ -1387,6 +1421,90 @@ func _update_scroll_ranges() -> void:
 func _cleanup_ui() -> void:
 	# TODO: 清理UI节点
 	pass
+
+
+## 初始化表头 tooltip
+func _initialize_header_tooltip() -> void:
+	# 延迟定时器（悬停 0.5 秒后显示）
+	_header_tooltip_timer = Timer.new()
+	_header_tooltip_timer.one_shot = true
+	_header_tooltip_timer.wait_time = 0.5
+	_header_tooltip_timer.timeout.connect(_on_header_tooltip_timer_timeout)
+	add_child(_header_tooltip_timer)
+
+	# tooltip 面板
+	_header_tooltip = PanelContainer.new()
+	_header_tooltip.visible = false
+	_header_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_header_tooltip.z_index = 100
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.15, 0.15, 0.95)
+	style.border_color = Color(0.4, 0.4, 0.4, 1.0)
+	style.set_border_width_all(1)
+	style.set_content_margin_all(6)
+	style.set_corner_radius_all(3)
+	_header_tooltip.add_theme_stylebox_override("panel", style)
+
+	_header_tooltip_label = Label.new()
+	_header_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_header_tooltip_label.custom_minimum_size = Vector2(100, 0)
+	_header_tooltip.add_child(_header_tooltip_label)
+
+	add_child(_header_tooltip)
+
+
+## 启动表头 tooltip 延迟定时器
+func _start_header_tooltip_timer(col: int, mouse_pos: Vector2) -> void:
+	if not data_model:
+		return
+	var desc := data_model.get_field_description(col)
+	if desc.is_empty():
+		return
+	# 存储位置供定时器回调使用
+	_header_tooltip_timer.set_meta("col", col)
+	_header_tooltip_timer.set_meta("pos", mouse_pos)
+	_header_tooltip_timer.start()
+
+
+## 定时器回调：显示表头 tooltip
+func _on_header_tooltip_timer_timeout() -> void:
+	if not _header_tooltip_timer.has_meta("col"):
+		return
+	var col: int = _header_tooltip_timer.get_meta("col")
+	var pos: Vector2 = _header_tooltip_timer.get_meta("pos")
+
+	if col != _hover_header_col or col < 0:
+		return
+	if not data_model:
+		return
+
+	var desc := data_model.get_field_description(col)
+	if desc.is_empty():
+		return
+
+	_header_tooltip_label.text = desc
+	# 限制最大宽度
+	_header_tooltip_label.custom_minimum_size.x = minf(300.0, size.x * 0.5)
+
+	# 定位到鼠标下方
+	var tooltip_pos := Vector2(pos.x, float(header_height) + 2.0)
+	# 确保不超出右侧边界
+	_header_tooltip.reset_size()
+	if tooltip_pos.x + _header_tooltip.size.x > size.x:
+		tooltip_pos.x = size.x - _header_tooltip.size.x - 4.0
+	if tooltip_pos.x < 0.0:
+		tooltip_pos.x = 0.0
+	_header_tooltip.position = tooltip_pos
+	_header_tooltip.visible = true
+
+
+## 隐藏表头 tooltip
+func _hide_header_tooltip() -> void:
+	if _header_tooltip_timer:
+		_header_tooltip_timer.stop()
+	if _header_tooltip:
+		_header_tooltip.visible = false
 
 
 ## 初始化功能 Initialization Features

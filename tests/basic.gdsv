@@ -1,3 +1,9 @@
+#@desc Column_6 持续时间
+#@desc hp 生命值
+#@desc id 唯一标识符
+#@desc is_boss 是否为Boss怪物
+#@desc name 角色名称
+#@desc ratio 属性倍率
 id:int	name:string=	hp:int=	is_boss:bool=	ratio:float=	Column_6:duration
 1	Slime	50	false	0.8	
 2	Goblin	80	false	1.0	10987.0
